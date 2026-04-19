@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Playwright
+e2e/.auth/
+playwright-report/
+test-results/
