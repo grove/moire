@@ -23,6 +23,7 @@ import {
   buildFacetCountQuery,
   buildClassInstancesQuery,
   buildSetTraversalQuery,
+  buildPredicateObjectsQuery,
   buildRelationshipsQuery,
 } from "@/lib/sparql";
 import { annotatePredicates } from "@/lib/facet-generator";
@@ -41,6 +42,30 @@ export async function setupEndpoint(
   sparqlUrl: string,
   auth?: EndpointConfig["auth"],
 ): Promise<SetupEndpointResult> {
+  // Fast reachability probe — fail early before the 30s introspection timeout
+  const headers: Record<string, string> = { Accept: "application/sparql-results+json" };
+  if (auth?.type === "basic") {
+    headers["Authorization"] = `Basic ${Buffer.from(auth.credentials).toString("base64")}`;
+  } else if (auth?.type === "bearer") {
+    headers["Authorization"] = `Bearer ${auth.credentials}`;
+  }
+  try {
+    const probeUrl = `${sparqlUrl}?query=${encodeURIComponent("ASK {}")}`;
+    const res = await fetch(probeUrl, { headers, signal: AbortSignal.timeout(5000) });
+    // Any HTTP response (even 4xx) means the server is reachable
+    if (!res.ok && res.status >= 500) {
+      throw new Error(`Endpoint returned HTTP ${res.status}`);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === "TimeoutError") {
+      throw new Error("Cannot reach endpoint: connection timed out.");
+    }
+    if (err instanceof TypeError) {
+      throw new Error("Cannot reach endpoint: connection refused.");
+    }
+    throw err;
+  }
+
   // Detect pg-ripple capability server-side (avoids CORS + Buffer issues on client)
   const capabilities = await detectCapabilitiesServerSide(sparqlUrl, auth);
 
@@ -325,6 +350,9 @@ export async function fetchEntitySet(
       graphIRI,
       labelPredicate,
     });
+  } else if (navigationPredicate) {
+    // Graph-wide traversal: all IRI objects of this predicate (from RelationshipsBrowser)
+    query = buildPredicateObjectsQuery({ predicateIRI: navigationPredicate, graphIRI, labelPredicate });
   } else if (facets["rdf:type"]?.length && !focusIRI) {
     query = buildClassInstancesQuery(
       facets["rdf:type"][0],
@@ -338,8 +366,13 @@ export async function fetchEntitySet(
     return [];
   }
 
-  const bindings = await executeSparql(endpointUrl, query, auth);
-  return bindingsToEntities(bindings);
+  try {
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return bindingsToEntities(bindings);
+  } catch (error) {
+    console.error("fetchEntitySet error:", error, "Query was:", query);
+    throw error;
+  }
 }
 
 function bindingsToEntities(bindings: SparqlBinding[]): EntityNode[] {
@@ -404,6 +437,18 @@ export async function fetchFacetCounts(
           def.id,
           def.sparqlPredicate,
         );
+        // Output curl command for debugging
+        const encodedQuery = Buffer.from(query).toString('base64');
+        const curlCmd = `curl -X POST "${endpointUrl}" \\
+  -H "Content-Type: application/sparql-query" \\
+  -H "Accept: application/sparql-results+json" \\
+  --data-raw '${query.replace(/'/g, "'\\''")}'`;
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`Facet: ${def.id}`);
+        console.log(`Predicate: ${def.sparqlPredicate}`);
+        console.log(`${'='.repeat(60)}`);
+        console.log(`\nQuery:\n${query}`);
+        console.log(`\nCurl command:\n${curlCmd}\n`);
         const bindings = await executeSparql(endpointUrl, query, auth);
         const values: FacetValue[] = bindings.map((b) => ({
           value: b.facetValue.value,
@@ -412,7 +457,8 @@ export async function fetchFacetCounts(
           available: parseInt(b.count.value, 10) > 0,
         }));
         return [def.id, values] as const;
-      } catch {
+      } catch (error) {
+        console.error(`Facet count query failed for ${def.id}:`, error);
         return [def.id, []] as const;
       }
     }),

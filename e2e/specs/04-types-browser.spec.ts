@@ -17,12 +17,12 @@ test.describe("Types browser", () => {
 
   test("shows known BSBM classes", async ({ bsbmPage }) => {
     await expect(bsbmPage.getByText("Review")).toBeVisible();
-    await expect(bsbmPage.getByText("Product")).toBeVisible();
+    await expect(bsbmPage.getByText("Product", { exact: true })).toBeVisible();
     await expect(bsbmPage.getByText("Person")).toBeVisible();
   });
 
   test("class rows show instance counts", async ({ bsbmPage }) => {
-    await expect(bsbmPage.getByText(/instances/)).toBeVisible();
+    await expect(bsbmPage.getByText(/instances/).first()).toBeVisible();
   });
 
   test("shows Browse Relationships button", async ({ bsbmPage }) => {

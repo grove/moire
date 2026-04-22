@@ -15,7 +15,7 @@ test.describe("Graphs browser", () => {
   });
 
   test("shows total triple count", async ({ connectedPage }) => {
-    await expect(connectedPage.getByText(/triples/)).toBeVisible();
+    await expect(connectedPage.getByText(/triples/).first()).toBeVisible();
   });
 
   test("shows at least one graph card", async ({ connectedPage }) => {
@@ -33,7 +33,7 @@ test.describe("Graphs browser", () => {
   });
 
   test("graph card shows predicate count", async ({ connectedPage }) => {
-    await expect(connectedPage.getByText(/predicates/)).toBeVisible();
+    await expect(connectedPage.getByText(/predicates/).first()).toBeVisible();
   });
 
   test("Refresh button is present", async ({ connectedPage }) => {

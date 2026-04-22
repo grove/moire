@@ -18,6 +18,11 @@ function escapeLiteral(text: string): string {
 
 function graphScope(graphIRI: string | null, pattern: string): string {
   if (graphIRI && graphIRI !== "default") {
+    // For multiline patterns, put braces on separate lines with proper indentation
+    if (pattern.includes('\n')) {
+      return `GRAPH ${escapeIRI(graphIRI)} {\n      ${pattern}\n    }`;
+    }
+    // For single-line patterns, use inline format
     return `GRAPH ${escapeIRI(graphIRI)} { ${pattern} }`;
   }
   return pattern;
@@ -77,23 +82,86 @@ export function buildLayerQuery({
       }
     });
 
-  const corePattern = `
-      ${patternFn(focusIRI)}
-      ${filters.join("\n      ")}
-  `;
+  const coreTriples = [
+    `${patternFn(focusIRI)}`,
+    ...filters,
+  ].join("\n      ");
+
+  if (graphIRI && graphIRI !== "default") {
+    // Named graph: use subquery + OPTIONAL { GRAPH } to avoid OPTIONAL-inside-GRAPH
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT ?entity ?label ?type ?abstract WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        GRAPH ${g} { ${coreTriples} }
+      } LIMIT ${limit} }
+      OPTIONAL { GRAPH ${g} { ?entity ${escapeIRI(labelPredicate)} ?label } }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type } }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract } }
+    }
+  `.trim();
+  }
+
+  const corePattern = [
+    `${patternFn(focusIRI)}`,
+    ...filters,
+    `OPTIONAL { ?entity ${escapeIRI(labelPredicate)} ?label }`,
+    `OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }`,
+    `OPTIONAL { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract }`,
+  ].join("\n      ");
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT DISTINCT ?entity ?label ?type ?abstract WHERE {
-      ${graphScope(graphIRI, corePattern)}
-      OPTIONAL { ?entity <${labelPredicate}> ?label }
-      OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
-      OPTIONAL { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract }
+      ${corePattern}
     }
     LIMIT ${limit}
   `.trim();
+}
+
+// ── Graph-wide predicate objects query ────────────────────────
+// Returns all IRI objects of a given predicate across the graph
+// (used by "Follow as set" from RelationshipsBrowser with no source entities)
+
+export function buildPredicateObjectsQuery({
+  predicateIRI,
+  graphIRI,
+  labelPredicate = "http://www.w3.org/2000/01/rdf-schema#label",
+  limit = 200,
+}: {
+  predicateIRI: string;
+  graphIRI: string | null;
+  labelPredicate?: string;
+  limit?: number;
+}): string {
+  const p = escapeIRI(predicateIRI);
+  const lp = escapeIRI(labelPredicate);
+  if (graphIRI && graphIRI !== "default") {
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    SELECT DISTINCT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        GRAPH ${g} { ?subject ${p} ?entity . FILTER(isIRI(?entity)) }
+      } LIMIT ${limit} }
+      OPTIONAL { GRAPH ${g} { ?entity ${lp} ?label } }
+      OPTIONAL { GRAPH ${g} { ?entity rdf:type ?type } }
+    }`.trim();
+  }
+  return `
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    SELECT DISTINCT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        ?subject ${p} ?entity . FILTER(isIRI(?entity))
+      } LIMIT ${limit} }
+      OPTIONAL { ?entity ${lp} ?label }
+      OPTIONAL { ?entity rdf:type ?type }
+    }`.trim();
 }
 
 // ── Set-to-set traversal query ─────────────────────────────────
@@ -120,19 +188,35 @@ export function buildSetTraversalQuery({
     ? `?subject ${escapeIRI(predicateIRI)} ?entity .`
     : `?entity ${escapeIRI(predicateIRI)} ?subject .`;
 
-  const corePattern = `
-    ${valuesClause}
-    ${triplePattern}
-  `;
+  if (graphIRI && graphIRI !== "default") {
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        GRAPH ${g} { ${valuesClause} ${triplePattern} }
+      } LIMIT ${limit} }
+      OPTIONAL { GRAPH ${g} { ?entity ${escapeIRI(labelPredicate)} ?label } }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type } }
+    }
+  `.trim();
+  }
+
+  const corePattern = [
+    valuesClause,
+    triplePattern,
+    `OPTIONAL { ?entity ${escapeIRI(labelPredicate)} ?label }`,
+    `OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }`,
+  ].join("\n    ");
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT DISTINCT ?entity ?label ?type WHERE {
-      ${graphScope(graphIRI, corePattern)}
-      OPTIONAL { ?entity <${labelPredicate}> ?label }
-      OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
+      ${corePattern}
     }
     LIMIT ${limit}
   `.trim();
@@ -161,20 +245,42 @@ export function buildClassInstancesQuery(
       }
     });
 
-  const corePattern = `
-    ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${escapeIRI(classIRI)} .
-    ${filters.join("\n    ")}
-  `;
+  const coreTriples = [
+    `?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${escapeIRI(classIRI)} .`,
+    ...filters,
+  ].join("\n    ");
+
+  if (graphIRI && graphIRI !== "default") {
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT ?entity ?label ?type ?abstract WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        GRAPH ${g} { ${coreTriples} }
+      } LIMIT ${limit} }
+      OPTIONAL { GRAPH ${g} { ?entity ${escapeIRI(labelPredicate)} ?label } }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type } }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract } }
+    }
+  `.trim();
+  }
+
+  const corePattern = [
+    `?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${escapeIRI(classIRI)} .`,
+    ...filters,
+    `OPTIONAL { ?entity ${escapeIRI(labelPredicate)} ?label }`,
+    `OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }`,
+    `OPTIONAL { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract }`,
+  ].join("\n    ");
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT DISTINCT ?entity ?label ?type ?abstract WHERE {
-      ${graphScope(graphIRI, corePattern)}
-      OPTIONAL { ?entity <${labelPredicate}> ?label }
-      OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
-      OPTIONAL { ?entity <http://www.w3.org/2000/01/rdf-schema#comment> ?abstract }
+      ${corePattern}
     }
     LIMIT ${limit}
   `.trim();
@@ -190,16 +296,61 @@ export function buildFacetCountQuery(
   facetDimension: string,
   sparqlPredicate: string,
 ): string {
+  // Handle class/type-based facet counts
+  if (activeFacets["rdf:type"]?.length && !focusIRI) {
+    const classIRI = activeFacets["rdf:type"][0];
+    
+    const otherFilters = Object.entries(activeFacets)
+      .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && dim !== "rdf:type" && vals?.length)
+      .flatMap(([dim, vals]) => {
+        const varName = `?_of_${dim.replace(/\W/g, "_")}`;
+        return [
+          `?entity ${escapeIRI(dim)} ${varName} .`,
+          `FILTER(${varName} IN (${vals.map(escapeIRI).join(", ")}))`,
+        ];
+      })
+      .join("\n      ");
+
+    const innerPattern = `
+      ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${escapeIRI(classIRI)} .
+      ${otherFilters}
+      ?entity ${escapeIRI(sparqlPredicate)} ?facetValue .
+    `.trim();
+
+    return `
+      PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+      SELECT ?facetValue (COUNT(DISTINCT ?entity) AS ?count) WHERE {
+        ${graphScope(graphIRI, innerPattern)}
+      }
+      GROUP BY ?facetValue
+      ORDER BY DESC(?count)
+      LIMIT 50
+    `.trim();
+  }
+
+  // If focusIRI is empty and not in class-based mode, return empty results
+  if (!focusIRI) {
+    return `
+      PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+      SELECT ?facetValue (0 AS ?count) WHERE { }
+    `.trim();
+  }
+
+  // Standard layer-based facet counts
   const patternFn = LAYER_PATTERNS[layer];
   if (!patternFn) throw new Error(`Unsupported layer: ${layer}`);
 
   const otherFilters = Object.entries(activeFacets)
-    .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && vals?.length)
+    .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && dim !== "rdf:type" && vals?.length)
     .flatMap(([dim, vals]) => {
       const varName = `?_of_${dim.replace(/\W/g, "_")}`;
+      const filterExpr = vals.every(v => isValidIRI(v))
+        ? `FILTER(${varName} IN (${vals.map(escapeIRI).join(", ")}))`
+        : `FILTER(STR(${varName}) IN (${vals.map(v => `"${escapeLiteral(v)}"`).join(", ")}))`;
       return [
         `?entity ${escapeIRI(dim)} ${varName} .`,
-        `FILTER(${varName} IN (${vals.map(escapeIRI).join(", ")}))`,
+        filterExpr,
       ];
     })
     .join("\n      ");
@@ -207,8 +358,8 @@ export function buildFacetCountQuery(
   const innerPattern = `
       ${patternFn(focusIRI)}
       ${otherFilters}
-      ?entity <${sparqlPredicate}> ?facetValue .
-  `;
+      ?entity ${escapeIRI(sparqlPredicate)} ?facetValue .
+  `.trim();
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -228,16 +379,28 @@ export function buildPredicateQuery(
   entityIRI: string,
   graphIRI: string | null,
 ): string {
-  const corePattern = `
-    ${escapeIRI(entityIRI)} ?predicate ?value .
-  `;
+  if (graphIRI && graphIRI !== "default") {
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT ?predicate ?predLabel ?value ?valueLabel WHERE {
+      GRAPH ${g} { ${escapeIRI(entityIRI)} ?predicate ?value . }
+      OPTIONAL { GRAPH ${g} { ?predicate <http://www.w3.org/2000/01/rdf-schema#label> ?predLabel . FILTER(lang(?predLabel) = "en" || lang(?predLabel) = "") } }
+      OPTIONAL { GRAPH ${g} { ?value <http://www.w3.org/2000/01/rdf-schema#label> ?valueLabel . FILTER(lang(?valueLabel) = "en" || lang(?valueLabel) = "") } }
+    }
+    ORDER BY ?predicate
+    LIMIT 500
+  `.trim();
+  }
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
     SELECT ?predicate ?predLabel ?value ?valueLabel WHERE {
-      ${graphScope(graphIRI, corePattern)}
+      ${escapeIRI(entityIRI)} ?predicate ?value .
       OPTIONAL { ?predicate <http://www.w3.org/2000/01/rdf-schema#label> ?predLabel . FILTER(lang(?predLabel) = "en" || lang(?predLabel) = "") }
       OPTIONAL { ?value <http://www.w3.org/2000/01/rdf-schema#label> ?valueLabel . FILTER(lang(?valueLabel) = "en" || lang(?valueLabel) = "") }
     }
@@ -259,11 +422,25 @@ export function buildSearchQuery(
   const filterClause = isPgRipple
     ? `FILTER(<http://pg-ripple.io/fn/fts>(?label, "${escaped}"))`
     : `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${escaped}")))`;
+  if (graphIRI && graphIRI !== "default") {
+    const g = escapeIRI(graphIRI);
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
-  const corePattern = `
-    ?entity <${labelPredicate}> ?label .
-    ${filterClause}
-  `;
+    SELECT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity ?label WHERE {
+        GRAPH ${g} { ?entity ${escapeIRI(labelPredicate)} ?label . ${filterClause} }
+      } LIMIT 20 }
+      OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type } }
+    }
+  `.trim();
+  }
+  const corePattern = [
+    `?entity ${escapeIRI(labelPredicate)} ?label .`,
+    filterClause,
+    `OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }`,
+  ].join("\n    ");
 
   return `
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -271,7 +448,6 @@ export function buildSearchQuery(
 
     SELECT DISTINCT ?entity ?label ?type WHERE {
       ${graphScope(graphIRI, corePattern)}
-      OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
     }
     LIMIT 20
   `.trim();
@@ -303,7 +479,7 @@ export function buildSampleGraphQuery(graphIRI: string | null): string {
         IF(DATATYPE(?object) IN (<http://www.w3.org/2001/XMLSchema#integer>, <http://www.w3.org/2001/XMLSchema#decimal>, <http://www.w3.org/2001/XMLSchema#float>, <http://www.w3.org/2001/XMLSchema#double>), "numeric",
         "literal")), "bnode")) AS ?valueKind
     )
-  `;
+  `.trim();
 
   return `
     SELECT ?predicate ?valueKind
@@ -329,7 +505,7 @@ export function buildLabelHeuristicQuery(graphIRI: string | null): string {
       <http://purl.org/dc/terms/title>
     }
     ?s ?labelPredicate ?o .
-  `;
+  `.trim();
 
   return `
     SELECT ?labelPredicate (COUNT(?s) AS ?coverage) WHERE {
@@ -372,7 +548,7 @@ export function buildRelationshipsQuery(
   const innerPattern = `
     ${typeFilter}
     ?subject ?predicate ?object .
-  `;
+  `.trim();
 
   return `
     SELECT ?predicate

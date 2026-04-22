@@ -35,7 +35,11 @@ const initialFrame: LensFrame = {
 
 function pushFrame(state: { stack: LensFrame[]; pointer: number }, newFrame: LensFrame) {
   const newStack = [...state.stack.slice(0, state.pointer + 1), newFrame];
-  return { stack: newStack, pointer: newStack.length - 1 };
+  const newPointer = newStack.length - 1;
+  if (typeof window !== "undefined") {
+    history.pushState({ navPointer: newPointer }, "");
+  }
+  return { stack: newStack, pointer: newPointer };
 }
 
 export const useNavigationStore = create<NavigationStore>((set, get) => ({
@@ -47,14 +51,22 @@ export const useNavigationStore = create<NavigationStore>((set, get) => ({
   canForward: () => get().pointer < get().stack.length - 1,
 
   setEndpoint: (endpointId) =>
-    set((s) => pushFrame(s, {
-      endpointId,
-      graphIRI: null,
-      context: "graphs",
-      focusIRI: "",
-      activeLayer: 1,
-      facets: {},
-    })),
+    set(() => {
+      if (typeof window !== "undefined") {
+        history.replaceState({ navPointer: 0 }, "");
+      }
+      return {
+        stack: [{
+          endpointId,
+          graphIRI: null,
+          context: "graphs",
+          focusIRI: "",
+          activeLayer: 1,
+          facets: {},
+        }],
+        pointer: 0,
+      };
+    }),
 
   pushFocus: (iri) =>
     set((s) => {
@@ -175,6 +187,18 @@ export const useNavigationStore = create<NavigationStore>((set, get) => ({
       return { stack: updated };
     }),
 
-  back: () => set((s) => ({ pointer: Math.max(0, s.pointer - 1) })),
-  forward: () => set((s) => ({ pointer: Math.min(s.stack.length - 1, s.pointer + 1) })),
+  back: () => {
+    if (typeof window !== "undefined") {
+      history.back();
+    } else {
+      set((s) => ({ pointer: Math.max(0, s.pointer - 1) }));
+    }
+  },
+  forward: () => {
+    if (typeof window !== "undefined") {
+      history.forward();
+    } else {
+      set((s) => ({ pointer: Math.min(s.stack.length - 1, s.pointer + 1) }));
+    }
+  },
 }));

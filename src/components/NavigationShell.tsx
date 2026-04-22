@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useNavigationStore } from "@/stores/navigation-store";
 import { useEndpointStore } from "@/stores/endpoint-store";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useBrowserHistory } from "@/hooks/useBrowserHistory";
 import { generateFacets } from "@/lib/facet-generator";
 
 // Navigation
@@ -31,6 +32,7 @@ export function NavigationShell() {
   const getIntrospection = useEndpointStore((s) => s.getIntrospection);
 
   useKeyboardShortcuts(useCallback(() => setSearchOpen(true), []));
+  useBrowserHistory();
 
   const endpoint = frame.endpointId ? getEndpoint(frame.endpointId) : undefined;
 
