@@ -2,7 +2,7 @@
 // IRI values are validated before interpolation to prevent SPARQL injection.
 
 function isValidIRI(iri: string): boolean {
-  return /^https?:\/\/[^\s<>"{}|\\^`]+$/.test(iri);
+  return /^[a-zA-Z][a-zA-Z0-9+\-.]*:[^\s<>"{}|\\^`]+$/.test(iri);
 }
 
 function escapeIRI(iri: string): string {

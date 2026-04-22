@@ -9,6 +9,7 @@ import { useNavigationStore } from "@/stores/navigation-store";
 import { setupEndpoint } from "@/app/actions/graph";
 import type { EndpointConfig } from "@/lib/types";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function EndpointManager() {
   const endpoints = useEndpointStore((s) => s.endpoints);
@@ -90,10 +91,17 @@ export function EndpointManager() {
             Faceted parallax navigation for knowledge graphs
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} size="sm">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Endpoint
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={() => setShowForm(!showForm)} size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Endpoint
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Connect a new SPARQL endpoint to explore</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {showForm && (
@@ -157,13 +165,27 @@ export function EndpointManager() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleAdd} disabled={loading} size="sm">
-                {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Connect
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
-                Cancel
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleAdd} disabled={loading} size="sm">
+                    {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    Connect
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Test the connection and introspect the endpoint's graphs and schema</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+                    Cancel
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Dismiss this form</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </CardContent>
         </Card>
@@ -189,15 +211,22 @@ export function EndpointManager() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium">{ep.label}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeEndpoint(ep.id)}
-                    aria-label={`Remove ${ep.label}`}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeEndpoint(ep.id)}
+                        aria-label={`Remove ${ep.label}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Remove {ep.label} from your endpoints</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <p className="text-xs text-muted-foreground font-mono truncate">
                   {ep.sparqlUrl}
@@ -207,14 +236,22 @@ export function EndpointManager() {
                 )}
               </CardHeader>
               <CardContent className="pt-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => setEndpoint(ep.id)}
-                >
-                  Open →
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => setEndpoint(ep.id)}
+                    >
+                      Open →
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Start browsing <span className="font-semibold">{ep.label}</span></p>
+                    <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{ep.sparqlUrl}</p>
+                  </TooltipContent>
+                </Tooltip>
               </CardContent>
             </Card>
           ))}

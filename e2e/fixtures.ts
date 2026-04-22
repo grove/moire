@@ -18,6 +18,8 @@ type Fixtures = {
   bsbmPage: Page;
   /** Review class entity set is loaded. */
   reviewPage: Page;
+  /** A single Review entity is open in detail view. */
+  entityDetailPage: Page;
 };
 
 export const test = base.extend<Fixtures>({
@@ -65,7 +67,26 @@ export const test = base.extend<Fixtures>({
       .first();
     await reviewRow.hover();
     await reviewRow.getByRole("button", { name: /browse as set/i }).click();
-    await bsbmPage.waitForSelector("text=entities", { timeout: 20_000 });
+    // The FacetSidebar renders immediately from the introspection cache (localStorage).
+    // No SPARQL needed — this appears within milliseconds of the Zustand state update.
+    // Tests that need actual entity data (cards, count) must wait within themselves.
+    await bsbmPage.waitForSelector("aside[aria-label='Navigation facets']", { timeout: 15_000 });
     await use(bsbmPage);
+  },
+
+  // ── entityDetailPage ─────────────────────────────────────────────────────────
+  // Click the first entity card in the Review set to open entity detail view.
+  // reviewPage now waits only for the sidebar (fast), so we must wait for entity
+  // cards here (requires SPARQL — allow up to 90s for a loaded endpoint).
+  entityDetailPage: async ({ reviewPage }, use) => {
+    await reviewPage.waitForSelector('[role="button"][aria-label^="Navigate to"]', { timeout: 120_000 });
+    const firstCard = reviewPage
+      .locator('[role="button"][aria-label^="Navigate to"]')
+      .first();
+    await firstCard.click();
+    // Wait for the LayerSelector to appear — it renders purely from Zustand state
+    // (context = "entity") with no SPARQL required, so it appears within milliseconds.
+    await reviewPage.waitForSelector('[aria-label="Layer depth selector"]', { timeout: 10_000 });
+    await use(reviewPage);
   },
 });

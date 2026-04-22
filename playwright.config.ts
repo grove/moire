@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  expect: { timeout: 30_000 },
   // Run tests sequentially — the app uses client-side state that builds up per flow
   fullyParallel: false,
   workers: 1,

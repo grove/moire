@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { shortIRI } from "@/lib/utils";
 import { useNavigationStore } from "@/stores/navigation-store";
@@ -44,33 +45,41 @@ export function EntityCard({ entity, detailLevel }: Props) {
   const typo = TYPOGRAPHY[detailLevel];
 
   return (
-    <Card
-      className="cursor-pointer transition-colors hover:bg-muted/40 border-border/60"
-      onClick={() => pushFocus(entity.iri)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && pushFocus(entity.iri)}
-      aria-label={`Navigate to ${entity.label}`}
-    >
-      <CardHeader className="p-3 pb-1">
-        <CardTitle className={cn(typo.title)}>
-          {entity.label}
-        </CardTitle>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Card
+          className="cursor-pointer transition-colors hover:bg-muted/40 border-border/60"
+          onClick={() => pushFocus(entity.iri)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && pushFocus(entity.iri)}
+          aria-label={`Navigate to ${entity.label}`}
+        >
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className={cn(typo.title)}>
+              {entity.label}
+            </CardTitle>
 
-        {detailLevel !== "label" && entity.type && (
-          <Badge variant="secondary" className={cn("w-fit mt-1", typo.badge)}>
-            {shortIRI(entity.type)}
-          </Badge>
-        )}
-      </CardHeader>
+            {detailLevel !== "label" && entity.type && (
+              <Badge variant="secondary" className={cn("w-fit mt-1", typo.badge)}>
+                {shortIRI(entity.type)}
+              </Badge>
+            )}
+          </CardHeader>
 
-      {(detailLevel === "summary" || detailLevel === "full") && entity.abstract && (
-        <CardContent className="px-3 pb-3 pt-0">
-          <p className={cn("text-muted-foreground leading-relaxed", typo.body)}>
-            {entity.abstract}
-          </p>
-        </CardContent>
-      )}
-    </Card>
+          {(detailLevel === "summary" || detailLevel === "full") && entity.abstract && (
+            <CardContent className="px-3 pb-3 pt-0">
+              <p className={cn("text-muted-foreground leading-relaxed", typo.body)}>
+                {entity.abstract}
+              </p>
+            </CardContent>
+          )}
+        </Card>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Open detail view for <span className="font-semibold">{entity.label}</span></p>
+        <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{entity.iri}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

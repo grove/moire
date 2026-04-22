@@ -3,6 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigationStore } from "@/stores/navigation-store";
 import { formatCount } from "@/lib/utils";
 import type { GraphSummary } from "@/lib/types";
@@ -30,19 +31,37 @@ export function GraphCard({ graph, endpointId }: Props) {
       <CardContent className="pt-0 space-y-2">
         <div className="flex flex-wrap gap-1">
           {graph.classes.slice(0, 5).map((cls) => (
-            <Badge key={cls.iri} variant="secondary" className="text-[10px]">
-              {cls.label} ({formatCount(cls.instanceCount)})
-            </Badge>
+            <Tooltip key={cls.iri}>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="text-[10px] cursor-help">
+                  {cls.label} ({formatCount(cls.instanceCount)})
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-mono text-xs break-all">{cls.iri}</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatCount(cls.instanceCount)} instances of this class</p>
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => setGraph(endpointId, graph.iri === "default" ? null : graph.iri)}
-        >
-          Browse this graph →
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs"
+              onClick={() => setGraph(endpointId, graph.iri === "default" ? null : graph.iri)}
+            >
+              Browse this graph →
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Explore the types and entities in <span className="font-semibold">{graph.label || graph.iri}</span></p>
+            {graph.iri !== "default" && (
+              <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{graph.iri}</p>
+            )}
+          </TooltipContent>
+        </Tooltip>
       </CardContent>
     </Card>
   );

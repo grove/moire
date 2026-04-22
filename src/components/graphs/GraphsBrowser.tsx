@@ -3,6 +3,7 @@
 import { useIntrospection } from "@/hooks/useIntrospection";
 import { GraphCard } from "./GraphCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCount } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,16 +32,23 @@ export function GraphsBrowser({ endpointId, sparqlUrl }: Props) {
             </p>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => mutate()}
-          disabled={isLoading}
-          className="text-xs"
-        >
-          <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => mutate()}
+              disabled={isLoading}
+              className="text-xs"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Re-introspect the endpoint to discover new or updated graphs</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {isLoading && !graphs && (

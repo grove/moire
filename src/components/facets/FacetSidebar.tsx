@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { FacetDefinition, FacetValue } from "@/lib/types";
 
@@ -35,14 +36,21 @@ export function FacetSidebar({ facetDefs }: Props) {
       <ScrollArea className="h-[calc(100vh-12rem)]">
         <div className="space-y-4 p-2">
           {hasActiveFacets && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs"
-              onClick={clearAllFacets}
-            >
-              Clear all filters
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={clearAllFacets}
+                >
+                  Clear all filters
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Remove all active facet filters and show all entities</p>
+              </TooltipContent>
+            </Tooltip>
           )}
 
           {facetDefs.map((facet, idx) => (
@@ -78,26 +86,35 @@ function FacetGroup({
       </h3>
       <div className="flex flex-col gap-0.5">
         {values.map((v) => (
-          <button
-            key={v.value}
-            onClick={() => toggleFacet(facet.id, v.value)}
-            disabled={!v.available && !active.includes(v.value)}
-            className={cn(
-              "flex items-center justify-between px-2 py-1 rounded text-sm text-left transition-colors",
-              active.includes(v.value)
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted text-foreground",
-              !v.available && !active.includes(v.value) && "opacity-30 cursor-not-allowed",
-            )}
-          >
-            <span className="truncate">{v.label}</span>
-            <Badge
-              variant={active.includes(v.value) ? "secondary" : "outline"}
-              className="ml-2 text-[10px] tabular-nums shrink-0"
-            >
-              {v.count}
-            </Badge>
-          </button>
+          <Tooltip key={v.value}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => toggleFacet(facet.id, v.value)}
+                disabled={!v.available && !active.includes(v.value)}
+                className={cn(
+                  "flex items-center justify-between px-2 py-1 rounded text-sm text-left transition-colors w-full",
+                  active.includes(v.value)
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-foreground",
+                  !v.available && !active.includes(v.value) && "opacity-30 cursor-not-allowed",
+                )}
+              >
+                <span className="truncate">{v.label}</span>
+                <Badge
+                  variant={active.includes(v.value) ? "secondary" : "outline"}
+                  className="ml-2 text-[10px] tabular-nums shrink-0"
+                >
+                  {v.count}
+                </Badge>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {active.includes(v.value)
+                ? <p>Remove filter: <span className="font-semibold">{v.label}</span></p>
+                : <p>Filter to <span className="font-semibold">{v.label}</span> ({v.count} {v.count === 1 ? "match" : "matches"})</p>
+              }
+            </TooltipContent>
+          </Tooltip>
         ))}
         {values.length === 0 && (
           <p className="text-xs text-muted-foreground px-2 py-1">No values</p>

@@ -59,16 +59,22 @@ export function PredicateTable({ entityIRI }: Props) {
             <dd className="space-y-0.5">
               {values.map((v, i) =>
                 v.valueIsIRI ? (
-                  <Button
-                    key={i}
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-sm font-normal justify-start"
-                    onClick={() => pushFocus(v.value)}
-                    title={v.value}
-                  >
-                    {v.valueLabel || shortIRI(v.value)}
-                  </Button>
+                  <Tooltip key={i}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-sm font-normal justify-start"
+                        onClick={() => pushFocus(v.value)}
+                      >
+                        {v.valueLabel || shortIRI(v.value)}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Navigate to <span className="font-semibold">{v.valueLabel || shortIRI(v.value)}</span></p>
+                      <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{v.value}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 ) : (
                   <span key={i} className="block break-words">
                     {v.value.length > 300 ? v.value.slice(0, 300) + "…" : v.value}

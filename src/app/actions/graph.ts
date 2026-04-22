@@ -51,7 +51,7 @@ export async function setupEndpoint(
   }
   try {
     const probeUrl = `${sparqlUrl}?query=${encodeURIComponent("ASK {}")}`;
-    const res = await fetch(probeUrl, { headers, signal: AbortSignal.timeout(5000) });
+    const res = await fetch(probeUrl, { headers, signal: AbortSignal.timeout(15000) });
     // Any HTTP response (even 4xx) means the server is reachable
     if (!res.ok && res.status >= 500) {
       throw new Error(`Endpoint returned HTTP ${res.status}`);
@@ -450,7 +450,9 @@ export async function fetchFacetCounts(
         console.log(`\nQuery:\n${query}`);
         console.log(`\nCurl command:\n${curlCmd}\n`);
         const bindings = await executeSparql(endpointUrl, query, auth);
-        const values: FacetValue[] = bindings.map((b) => ({
+        const values: FacetValue[] = bindings
+          .filter((b) => b.facetValue !== undefined)
+          .map((b) => ({
           value: b.facetValue.value,
           label: shortIRI(b.facetValue.value),
           count: parseInt(b.count.value, 10),

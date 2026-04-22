@@ -23,6 +23,7 @@ import { EntitySet } from "@/components/entities/EntitySet";
 import { FacetSidebar } from "@/components/facets/FacetSidebar";
 
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
 
 export function NavigationShell() {
@@ -61,15 +62,22 @@ export function NavigationShell() {
       <header className="border-b px-4 py-2 flex items-center gap-3 sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <BackForwardControls />
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSearchOpen(true)}
-          className="ml-auto text-xs text-muted-foreground h-8 w-64 justify-start"
-        >
-          <Search className="h-3 w-3 mr-2" />
-          Search... <kbd className="ml-auto text-[10px] bg-muted px-1 rounded">⌘K</kbd>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="ml-auto text-xs text-muted-foreground h-8 w-64 justify-start"
+            >
+              <Search className="h-3 w-3 mr-2" />
+              Search... <kbd className="ml-auto text-[10px] bg-muted px-1 rounded">⌘K</kbd>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Search entities across the graph (⌘K)</p>
+          </TooltipContent>
+        </Tooltip>
       </header>
 
       {/* Context header + breadcrumb */}

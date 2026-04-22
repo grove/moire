@@ -5,6 +5,7 @@ import { useEndpointStore } from "@/stores/endpoint-store";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCount } from "@/lib/utils";
 import type { ClassSummary } from "@/lib/types";
 
@@ -50,14 +51,21 @@ export function TypesBrowser() {
 
       <Separator />
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={browseRelationships}
-        className="text-xs"
-      >
-        Browse Relationships →
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={browseRelationships}
+            className="text-xs"
+          >
+            Browse Relationships →
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>See all predicates and how entities connect in this graph</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -118,21 +126,36 @@ function ClassNode({
           {depth > 0 && (
             <span className="text-muted-foreground text-xs">├─</span>
           )}
-          <span className="text-sm font-medium truncate" title={node.iri}>
-            {node.label}
-          </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm font-medium truncate cursor-help">
+                {node.label}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="font-mono text-xs break-all">{node.iri}</p>
+              <p className="text-xs text-muted-foreground mt-1">{formatCount(node.instanceCount)} instances in the graph</p>
+            </TooltipContent>
+          </Tooltip>
           <span className="text-xs text-muted-foreground tabular-nums">
             {formatCount(node.instanceCount)} instances
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onSelect(node.iri)}
-          className="text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        >
-          Browse as set →
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSelect(node.iri)}
+              className="text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            >
+              Browse as set →
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Filter the view to show only <span className="font-semibold">{node.label}</span> entities</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
       {node.children.map((child) => (
         <ClassNode key={child.iri} node={child} depth={depth + 1} onSelect={onSelect} />
