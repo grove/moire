@@ -72,7 +72,7 @@ test.describe("Breadcrumb", () => {
 
   test("breadcrumb grows deeper on graph navigation", async ({ bsbmPage }) => {
     const breadcrumb = bsbmPage.locator("nav[aria-label='Navigation breadcrumb']");
-    // After drilling into bsbm graph, breadcrumb has at least 2 segments (endpoint + graph)
+    // After drilling into bsbm graph, breadcrumb has at least 2 segments (endpoint + context)
     const chevrons = breadcrumb.locator("svg");
     const count = await chevrons.count();
     expect(count).toBeGreaterThanOrEqual(1);
@@ -83,7 +83,125 @@ test.describe("Breadcrumb", () => {
     const text = await breadcrumb.textContent();
     expect(text?.trim().length).toBeGreaterThan(0);
   });
+
+  test("on graphs browser, endpoint crumb is plain text (not a link)", async ({
+    connectedPage,
+  }) => {
+    const breadcrumb = connectedPage.locator("nav[aria-label='Navigation breadcrumb']");
+    // On the graphs page there is no clickable button — endpoint is the current location
+    await expect(breadcrumb.getByRole("button")).toHaveCount(0);
+  });
+
+  test("on types browser, endpoint crumb is a clickable link", async ({
+    bsbmPage,
+  }) => {
+    const breadcrumb = bsbmPage.locator("nav[aria-label='Navigation breadcrumb']");
+    await expect(
+      breadcrumb.getByRole("button", { name: /navigate to local sparql/i }),
+    ).toBeVisible();
+  });
+
+  test("on entity set, both endpoint and graph crumbs are links", async ({
+    reviewPage,
+  }) => {
+    const breadcrumb = reviewPage.locator("nav[aria-label='Navigation breadcrumb']");
+    // endpoint link
+    await expect(
+      breadcrumb.getByRole("button", { name: /navigate to local sparql/i }),
+    ).toBeVisible();
+    // graph link (second button in the breadcrumb)
+    const buttons = breadcrumb.getByRole("button");
+    await expect(buttons).toHaveCount(2);
+  });
+
+  test("current context (last crumb) is never a button", async ({ reviewPage }) => {
+    const breadcrumb = reviewPage.locator("nav[aria-label='Navigation breadcrumb']");
+    const text = await breadcrumb.textContent();
+    // The last span (current context) is a <span>, not a <button>
+    // Verify the breadcrumb has exactly 2 buttons and additional text beyond them
+    const buttons = breadcrumb.getByRole("button");
+    await expect(buttons).toHaveCount(2);
+    // The breadcrumb as a whole contains more text than just the two button labels
+    const buttonTexts = await buttons.allTextContents();
+    const allText = text ?? "";
+    const buttonText = buttonTexts.join("");
+    expect(allText.length).toBeGreaterThan(buttonText.length);
+  });
 });
+
+test.describe("Breadcrumb navigation links", () => {
+  test("clicking endpoint crumb on types browser navigates to graphs browser", async ({
+    bsbmPage,
+  }) => {
+    const breadcrumb = bsbmPage.locator("nav[aria-label='Navigation breadcrumb']");
+    await breadcrumb
+      .getByRole("button", { name: /navigate to local sparql/i })
+      .click();
+    await expect(bsbmPage.getByText(/named graphs/i)).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test("after navigating via endpoint crumb, forward button is enabled", async ({
+    bsbmPage,
+  }) => {
+    const breadcrumb = bsbmPage.locator("nav[aria-label='Navigation breadcrumb']");
+    await breadcrumb
+      .getByRole("button", { name: /navigate to local sparql/i })
+      .click();
+    await expect(bsbmPage.getByText(/named graphs/i)).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(bsbmPage.getByLabel("Go forward")).toBeEnabled();
+  });
+
+  test("clicking graph crumb on entity set navigates to types browser", async ({
+    reviewPage,
+  }) => {
+    const breadcrumb = reviewPage.locator("nav[aria-label='Navigation breadcrumb']");
+    // The second button is the graph crumb
+    await breadcrumb.getByRole("button").nth(1).click();
+    await expect(reviewPage.getByText(/classes discovered/i)).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test("after navigating via graph crumb, back button takes you back to the set", async ({
+    reviewPage,
+  }) => {
+    const breadcrumb = reviewPage.locator("nav[aria-label='Navigation breadcrumb']");
+    await breadcrumb.getByRole("button").nth(1).click();
+    await expect(reviewPage.getByText(/classes discovered/i)).toBeVisible({
+      timeout: 5_000,
+    });
+    // Navigate back — should return to the entity set
+    await reviewPage.getByLabel("Go back").click();
+    await expect(reviewPage.locator("aside[aria-label='Navigation facets']")).toBeVisible({
+      timeout: 5_000,
+    });
+  });
+
+  test("endpoint crumb tooltip shows SPARQL URL", async ({ bsbmPage }) => {
+    const breadcrumb = bsbmPage.locator("nav[aria-label='Navigation breadcrumb']");
+    const endpointBtn = breadcrumb.getByRole("button", {
+      name: /navigate to local sparql/i,
+    });
+    await endpointBtn.hover();
+    await expect(
+      bsbmPage.locator("[data-radix-popper-content-wrapper]"),
+    ).toContainText("http://localhost", { timeout: 3_000 });
+  });
+
+  test("graph crumb tooltip shows named graph IRI", async ({ reviewPage }) => {
+    const breadcrumb = reviewPage.locator("nav[aria-label='Navigation breadcrumb']");
+    const graphBtn = breadcrumb.getByRole("button").nth(1);
+    await graphBtn.hover();
+    await expect(
+      reviewPage.locator("[data-radix-popper-content-wrapper]"),
+    ).toContainText("Named graph:", { timeout: 3_000 });
+  });
+});
+
 
 test.describe("Search palette", () => {
   test("search button is visible after connecting endpoint", async ({

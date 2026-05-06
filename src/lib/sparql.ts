@@ -304,9 +304,12 @@ export function buildFacetCountQuery(
       .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && dim !== "rdf:type" && vals?.length)
       .flatMap(([dim, vals]) => {
         const varName = `?_of_${dim.replace(/\W/g, "_")}`;
+        const filterExpr = vals.every(v => isValidIRI(v))
+          ? `FILTER(${varName} IN (${vals.map(escapeIRI).join(", ")}))`
+          : `FILTER(STR(${varName}) IN (${vals.map(v => `"${escapeLiteral(v)}"`).join(", ")}))`;
         return [
           `?entity ${escapeIRI(dim)} ${varName} .`,
-          `FILTER(${varName} IN (${vals.map(escapeIRI).join(", ")}))`,
+          filterExpr,
         ];
       })
       .join("\n      ");

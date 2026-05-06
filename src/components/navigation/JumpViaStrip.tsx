@@ -17,10 +17,9 @@ export function JumpViaStrip() {
     (g) => g.iri === (frame.graphIRI ?? "default"),
   );
 
-  // Get top navigation-candidate predicates
+  // Get all navigation-candidate predicates
   const navPredicates = currentGraph?.predicates
-    .filter((p) => p.isNavigationCandidate)
-    .slice(0, 5) ?? [];
+    .filter((p) => p.isNavigationCandidate) ?? [];
 
   if (navPredicates.length === 0) return null;
 

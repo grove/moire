@@ -53,15 +53,20 @@ export function FacetSidebar({ facetDefs }: Props) {
             </Tooltip>
           )}
 
-          {facetDefs.map((facet, idx) => (
-            <div key={facet.id}>
-              {idx > 0 && <Separator className="mb-3" />}
-              <FacetGroup
-                facet={facet}
-                values={facetValues?.[facet.id] ?? []}
-              />
-            </div>
-          ))}
+          {facetDefs.map((facet, idx) => {
+            const values = facetValues?.[facet.id] ?? [];
+            const active = frame.facets[facet.id] ?? [];
+            if (values.length === 0 && active.length === 0) return null;
+            return (
+              <div key={facet.id}>
+                {idx > 0 && <Separator className="mb-3" />}
+                <FacetGroup
+                  facet={facet}
+                  values={values}
+                />
+              </div>
+            );
+          })}
         </div>
       </ScrollArea>
     </aside>
@@ -85,8 +90,8 @@ function FacetGroup({
         {facet.label}
       </h3>
       <div className="flex flex-col gap-0.5">
-        {values.map((v) => (
-          <Tooltip key={v.value}>
+        {values.map((v, i) => (
+          <Tooltip key={`${i}:${v.value}`}>
             <TooltipTrigger asChild>
               <button
                 onClick={() => toggleFacet(facet.id, v.value)}

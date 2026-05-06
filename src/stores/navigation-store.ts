@@ -13,6 +13,7 @@ interface NavigationStore {
   traverseVia: (predicateIRI: string) => void;
   setClass: (classIRI: string) => void;
   setGraph: (endpointId: string, graphIRI: string | null) => void;
+  browseGraphs: () => void;
   browseTypes: () => void;
   browseRelationships: () => void;
   setLayer: (layer: number) => void;
@@ -118,6 +119,19 @@ export const useNavigationStore = create<NavigationStore>((set, get) => ({
       activeLayer: 1,
       facets: {},
     })),
+
+  browseGraphs: () =>
+    set((s) => {
+      const prev = s.stack[s.pointer];
+      return pushFrame(s, {
+        endpointId: prev.endpointId,
+        graphIRI: null,
+        context: "graphs",
+        focusIRI: "",
+        activeLayer: 1,
+        facets: {},
+      });
+    }),
 
   browseTypes: () =>
     set((s) => {
