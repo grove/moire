@@ -71,7 +71,12 @@ export function buildLayerQuery({
   }
 
   Object.entries(facets)
-    .filter(([dim, vals]) => dim !== "rdf:type" && dim !== "__sourceSet__" && vals.length)
+    .filter(([dim, vals]) => 
+      dim !== "rdf:type" && 
+      dim !== "__sourceSet__" && 
+      vals.length &&
+      (isValidIRI(dim) || dim === "default")  // Only include valid IRI dimensions
+    )
     .forEach(([dim, vals], idx) => {
       const varName = `?_fv_${idx}`;
       filters.push(`?entity ${escapeIRI(dim)} ${varName} .`);
@@ -234,7 +239,12 @@ export function buildClassInstancesQuery(
   const filters: string[] = [];
 
   Object.entries(facets)
-    .filter(([dim, vals]) => dim !== "rdf:type" && dim !== "__sourceSet__" && vals.length)
+    .filter(([dim, vals]) => 
+      dim !== "rdf:type" && 
+      dim !== "__sourceSet__" && 
+      vals.length &&
+      (isValidIRI(dim) || dim === "default")  // Only include valid IRI dimensions
+    )
     .forEach(([dim, vals], idx) => {
       const varName = `?_fv_${idx}`;
       filters.push(`?entity ${escapeIRI(dim)} ${varName} .`);
@@ -301,7 +311,13 @@ export function buildFacetCountQuery(
     const classIRI = activeFacets["rdf:type"][0];
     
     const otherFilters = Object.entries(activeFacets)
-      .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && dim !== "rdf:type" && vals?.length)
+      .filter(([dim, vals]) => 
+        dim !== facetDimension && 
+        dim !== "__sourceSet__" && 
+        dim !== "rdf:type" && 
+        vals?.length &&
+        (isValidIRI(dim) || dim === "default")  // Only include valid IRI dimensions
+      )
       .flatMap(([dim, vals]) => {
         const varName = `?_of_${dim.replace(/\W/g, "_")}`;
         const filterExpr = vals.every(v => isValidIRI(v))
@@ -345,7 +361,13 @@ export function buildFacetCountQuery(
   if (!patternFn) throw new Error(`Unsupported layer: ${layer}`);
 
   const otherFilters = Object.entries(activeFacets)
-    .filter(([dim, vals]) => dim !== facetDimension && dim !== "__sourceSet__" && dim !== "rdf:type" && vals?.length)
+    .filter(([dim, vals]) => 
+      dim !== facetDimension && 
+      dim !== "__sourceSet__" && 
+      dim !== "rdf:type" && 
+      vals?.length &&
+      (isValidIRI(dim) || dim === "default")  // Only include valid IRI dimensions
+    )
     .flatMap(([dim, vals]) => {
       const varName = `?_of_${dim.replace(/\W/g, "_")}`;
       const filterExpr = vals.every(v => isValidIRI(v))

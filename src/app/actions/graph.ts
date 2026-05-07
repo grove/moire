@@ -289,16 +289,22 @@ async function introspectGraph(
   ]);
 
   // Parse predicates
-  const rawPredicates: PredicateSummary[] = predicateBindings.map((b) => ({
-    iri: b.predicate.value,
-    label: shortIRI(b.predicate.value),
-    subjectCount: parseInt(b.subjectCount?.value ?? "0", 10),
-    objectCount: parseInt(b.objectCount?.value ?? "0", 10),
-    valueKind: (b.valueKind?.value ?? "literal") as PredicateSummary["valueKind"],
-    isFacetCandidate: false,
-    isNavigationCandidate: false,
-    isStructural: false,
-  }));
+  // Filter out invalid IRIs to prevent errors in SPARQL query building
+  const isValidIRI = (iri: string): boolean =>
+    /^[a-zA-Z][a-zA-Z0-9+\-.]*:[^\s<>"{}|\\^`]+$/.test(iri);
+  
+  const rawPredicates: PredicateSummary[] = predicateBindings
+    .filter((b) => isValidIRI(b.predicate.value))
+    .map((b) => ({
+      iri: b.predicate.value,
+      label: shortIRI(b.predicate.value),
+      subjectCount: parseInt(b.subjectCount?.value ?? "0", 10),
+      objectCount: parseInt(b.objectCount?.value ?? "0", 10),
+      valueKind: (b.valueKind?.value ?? "literal") as PredicateSummary["valueKind"],
+      isFacetCandidate: false,
+      isNavigationCandidate: false,
+      isStructural: false,
+    }));
   const predicates = annotatePredicates(rawPredicates);
 
   // Parse label heuristic
