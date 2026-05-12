@@ -140,6 +140,20 @@ describe("buildFacetCountQuery", () => {
     expect(query).toContain("GROUP BY");
     expect(query).toContain("?facetValue");
   });
+
+  it("throws when sparqlPredicate is not a valid IRI — regression for non-IRI facet dimensions", () => {
+    // Non-IRI facet dimensions must be rejected before the query is sent to the endpoint
+    expect(() =>
+      buildFacetCountQuery(
+        "http://example.org/focus",
+        null,
+        0,
+        {},
+        "Docker image",
+        "Docker image",
+      )
+    ).toThrow("Invalid IRI");
+  });
 });
 
 // ── buildSearchQuery ───────────────────────────────────────────

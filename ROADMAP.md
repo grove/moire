@@ -142,19 +142,19 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 
 ### v0.2.4 — Track 4: Integration tests for server actions
 
-- [ ] Create `e2e/sparql-mock-server.ts`: minimal in-process HTTP server that returns configurable SPARQL JSON responses
-- [ ] `setupEndpoint` returns capabilities and summaries for a valid SPARQL response
-- [ ] `setupEndpoint` throws `"Cannot reach endpoint: connection timed out."` on no response
-- [ ] `setupEndpoint` throws on HTTP 500
-- [ ] Introspection pipeline filters out predicates with non-IRI values — regression test for the documented bug
-- [ ] Default-graph endpoint represented as `graphIRI = null`
-- [ ] Facet count query rejects non-IRI facet dimensions before sending the query
+- [x] Create `e2e/sparql-mock-server.ts`: minimal in-process HTTP server that returns configurable SPARQL JSON responses
+- [x] `setupEndpoint` returns capabilities and summaries for a valid SPARQL response
+- [x] `setupEndpoint` throws `"Cannot reach endpoint: connection timed out."` on no response
+- [x] `setupEndpoint` throws on HTTP 500
+- [x] Introspection pipeline filters out predicates with non-IRI values — regression test for the documented bug
+- [x] Default-graph endpoint represented as `graphIRI = null`
+- [x] Facet count query rejects non-IRI facet dimensions before sending the query
 
 ### Acceptance criteria
 - [x] `npm run test:unit` passes; `src/lib/` line coverage ≥ 80%
-- [ ] All 12 existing E2E specs pass after reliability fixes
-- [ ] `data-testid` attributes in place on the five listed components
-- [ ] IRI validation regression test exists and passes against the mock server
+- [x] All 12 existing E2E specs pass after reliability fixes
+- [x] `data-testid` attributes in place on the five listed components
+- [x] IRI validation regression test exists and passes against the mock server
 
 ---
 
