@@ -4,6 +4,7 @@ import { useNavigationStore } from "@/stores/navigation-store";
 import { useEndpointStore } from "@/stores/endpoint-store";
 import { shortIRI } from "@/lib/utils";
 import { buildContextHeader, type LabelCache } from "@/lib/context-header";
+import { lookupPredicate, getInverseLabel } from "@/lib/vocabulary-registry";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -35,8 +36,9 @@ export function LensBreadcrumb() {
     },
     entity: (iri) => shortIRI(iri),
     class_: (iri) => shortIRI(iri),
-    predicate: (iri) => shortIRI(iri),
+    predicate: (iri) => lookupPredicate(iri).name ?? shortIRI(iri),
     value: (iri) => shortIRI(iri),
+    predicateInverse: (iri) => getInverseLabel(iri),
   };
 
   const contextHeader = buildContextHeader(stack, pointer, labels);

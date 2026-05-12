@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { lookupPredicate, inferRole } from "./vocabulary-registry";
+import { lookupPredicate, inferRole, getInverseLabel } from "./vocabulary-registry";
 
 // Import the raw REGISTRY for duplicate checking
 // We access it indirectly by verifying behaviour, but also parse the module source
@@ -66,6 +66,45 @@ describe("inferRole", () => {
 
   it("defaults to 'relational' for unknown patterns", () => {
     expect(inferRole("http://example.org/ns#worksFor")).toBe("relational");
+  });
+});
+
+// ── getInverseLabel — v0.3.0 ──────────────────────────────────
+
+describe("getInverseLabel", () => {
+  it("returns the inverse label for skos:broader", () => {
+    const label = getInverseLabel("http://www.w3.org/2004/02/skos/core#broader");
+    expect(label).toBe("Broader concepts");
+  });
+
+  it("returns the inverse label for skos:narrower", () => {
+    const label = getInverseLabel("http://www.w3.org/2004/02/skos/core#narrower");
+    expect(label).toBe("Narrower concepts");
+  });
+
+  it("returns the inverse label for rdfs:subClassOf", () => {
+    const label = getInverseLabel("http://www.w3.org/2000/01/rdf-schema#subClassOf");
+    expect(label).toBe("Superclasses");
+  });
+
+  it("returns the inverse label for dcterms:isPartOf", () => {
+    const label = getInverseLabel("http://purl.org/dc/terms/isPartOf");
+    expect(label).toBe("Parent resources");
+  });
+
+  it("returns the inverse label for prov:wasDerivedFrom", () => {
+    const label = getInverseLabel("http://www.w3.org/ns/prov#wasDerivedFrom");
+    expect(label).toBe("Source resources");
+  });
+
+  it("returns undefined for predicates without an inverse label", () => {
+    const label = getInverseLabel("http://www.w3.org/2000/01/rdf-schema#label");
+    expect(label).toBeUndefined();
+  });
+
+  it("returns undefined for unknown predicates", () => {
+    const label = getInverseLabel("http://totally-unknown.example/ns#foo");
+    expect(label).toBeUndefined();
   });
 });
 
