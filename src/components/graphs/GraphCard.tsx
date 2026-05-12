@@ -17,7 +17,7 @@ export function GraphCard({ graph, endpointId }: Props) {
   const setGraph = useNavigationStore((s) => s.setGraph);
 
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60" data-testid="graph-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-mono font-medium truncate" title={graph.iri}>
           {graph.label || graph.iri}

@@ -49,6 +49,7 @@ export function EntityCard({ entity, detailLevel }: Props) {
       <TooltipTrigger asChild>
         <Card
           className="cursor-pointer transition-colors hover:bg-muted/40 border-border/60"
+          data-testid="entity-card"
           onClick={() => pushFocus(entity.iri)}
           role="button"
           tabIndex={0}

@@ -90,3 +90,13 @@ export const test = base.extend<Fixtures>({
     await use(reviewPage);
   },
 });
+
+/**
+ * Call inside a `test.describe` block to raise the per-test timeout to 180 s.
+ * Replaces per-file `test.setTimeout(180_000)` calls with a shared fixture override.
+ */
+export function useSparqlTimeout() {
+  test.beforeEach(async ({}, testInfo) => {
+    testInfo.setTimeout(180_000);
+  });
+}

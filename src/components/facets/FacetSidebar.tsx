@@ -85,7 +85,7 @@ function FacetGroup({
   const active = frame.facets[facet.id] ?? [];
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" data-testid="facet-group">
       <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
         {facet.label}
       </h3>

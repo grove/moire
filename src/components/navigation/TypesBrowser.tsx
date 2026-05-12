@@ -121,7 +121,7 @@ function ClassNode({
 }) {
   return (
     <div style={{ paddingLeft: `${depth * 20}px` }}>
-      <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group">
+      <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group" data-testid="class-row">
         <div className="flex items-center gap-2 min-w-0">
           {depth > 0 && (
             <span className="text-muted-foreground text-xs">├─</span>

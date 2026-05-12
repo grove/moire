@@ -134,11 +134,11 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 
 ### v0.2.3 — Track 3: E2E reliability fixes
 
-- [ ] Tighten `/\d+\s+entit/` to `/(entity|entities)/` in `05-entity-set.spec.ts`, `10-facets.spec.ts`, `07-navigation.spec.ts`
-- [ ] Add `data-testid` attributes to graph cards, class rows, entity cards, relationship rows, and facet groups
-- [ ] Replace `.animate-pulse` + `.catch(() => {})` waits with positive content-ready assertions using the new `data-testid` selectors
-- [ ] Annotate intentional search-palette skips with `test.info().annotations.push(...)` instead of silent returns
-- [ ] Deduplicate `test.setTimeout(180_000)` into a shared fixture override in `fixtures.ts`
+- [x] Tighten `/\d+\s+entit/` to `/(entity|entities)/` in `05-entity-set.spec.ts`, `10-facets.spec.ts`, `07-navigation.spec.ts`
+- [x] Add `data-testid` attributes to graph cards, class rows, entity cards, relationship rows, and facet groups
+- [x] Replace `.animate-pulse` + `.catch(() => {})` waits with positive content-ready assertions using the new `data-testid` selectors
+- [x] Annotate intentional search-palette skips with `test.info().annotations.push(...)` instead of silent returns
+- [x] Deduplicate `test.setTimeout(180_000)` into a shared fixture override in `fixtures.ts`
 
 ### v0.2.4 — Track 4: Integration tests for server actions
 

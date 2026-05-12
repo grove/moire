@@ -2,12 +2,12 @@
  * Facet sidebar — appears on entity set / entity views and allows filtering.
  * Uses reviewPage fixture (Review class entity set, which has facet-candidate predicates).
  */
-import { test, expect } from "../fixtures";
+import { test, expect, useSparqlTimeout } from "../fixtures";
 
 test.describe("Facet sidebar", () => {
   // reviewPage now uses the fast sidebar wait (no SPARQL). Tests that need entity
   // data must wait within themselves. Allow generous time for a loaded endpoint.
-  test.setTimeout(180_000);
+  useSparqlTimeout();
   test("facet sidebar is present on entity set view", async ({ reviewPage }) => {
     await expect(reviewPage.locator("aside[aria-label='Navigation facets']")).toBeVisible();
   });
@@ -23,11 +23,11 @@ test.describe("Facet sidebar", () => {
   test("facet values load for at least one dimension", async ({ reviewPage }) => {
     // Facet values are rendered as buttons inside the sidebar
     const sidebar = reviewPage.locator("aside[aria-label='Navigation facets']");
-    // Wait for any loading skeletons to disappear
+    // Wait for at least one facet group to be visible (positive content-ready assertion)
     await sidebar
-      .locator(".animate-pulse")
-      .waitFor({ state: "detached", timeout: 20_000 })
-      .catch(() => {});
+      .locator('[data-testid="facet-group"]')
+      .first()
+      .waitFor({ state: "visible", timeout: 20_000 });
 
     // At minimum: the facet value buttons or the "Clear all filters" button exist
     const anyBtn = sidebar.getByRole("button");
@@ -67,7 +67,7 @@ test.describe("Facet sidebar", () => {
     await reviewPage.waitForSelector('p[aria-live="polite"]', { timeout: 90_000 });
 
     // Get entity count before
-    const countText = await reviewPage.getByText(/\d+\s+entit/).textContent();
+    const countText = await reviewPage.getByText(/(entity|entities)/).textContent();
     const before = parseInt(countText?.match(/^(\d+)/)?.[1] ?? "0");
 
     await facetValueBtn.click();

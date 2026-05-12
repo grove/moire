@@ -2,11 +2,11 @@
  * Search palette — typing a query and selecting a result.
  * Uses bsbmPage fixture (inside the bsbm graph so search has a context).
  */
-import { test, expect } from "../fixtures";
+import { test, expect, useSparqlTimeout } from "../fixtures";
 
 test.describe("Search palette — query and navigation", () => {
   // The SPARQL CONTAINS scan over 5K product labels can take 30-60s on a loaded endpoint.
-  test.setTimeout(180_000);
+  useSparqlTimeout();
   test("⌘K shortcut opens the search palette", async ({ bsbmPage }) => {
     await bsbmPage.keyboard.press("Meta+k");
     await expect(bsbmPage.locator("input[placeholder*='Search']")).toBeVisible({
@@ -84,7 +84,13 @@ test.describe("Search palette — query and navigation", () => {
       .then(() => true)
       .catch(() => false);
 
-    if (!hasResults) return; // endpoint too slow; search already verified by tests 11/12
+    if (!hasResults) {
+      test.info().annotations.push({
+        type: "skip-reason",
+        description: "endpoint too slow; search already verified by earlier tests",
+      });
+      return;
+    }
 
     // ArrowDown moves highlight (stays on input); Enter fires the React onKeyDown handler.
     await input.press("ArrowDown");
