@@ -36,6 +36,9 @@ import {
   type MetadataBinding,
   buildResourceAnnotationQuery,
   parseResourceAnnotation,
+  buildShaclShapeQuery,
+  parseShaclShapes,
+  buildShaclViolationCheckQuery,
 } from "@/lib/metadata-queries";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
@@ -684,5 +687,67 @@ export async function fetchResourceAnnotations(
   } catch (err) {
     console.warn("[v0.6.0] Resource annotation query failed:", err);
     return {};
+  }
+}
+
+// ── v0.7.0 — SHACL data quality ───────────────────────────────
+
+import type { ShaclPropertyShape } from "@/lib/types";
+
+/**
+ * Fetch SHACL property shapes for a given target class.
+ *
+ * Runs on-demand when an entity detail or type view opens. Results should be
+ * cached by the caller (e.g., via SWR) using the class IRI as the key.
+ *
+ * Gracefully returns an empty array when the graph has no SHACL shapes or when
+ * the query fails.
+ */
+export async function fetchShaclShapes(
+  endpointUrl: string,
+  classIRI: string,
+  _graphIRI: string | null,
+  auth?: EndpointConfig["auth"],
+): Promise<ShaclPropertyShape[]> {
+  try {
+    const query = buildShaclShapeQuery(classIRI);
+    if (!query) return [];
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return parseShaclShapes(bindings as MetadataBinding[]);
+  } catch (err) {
+    console.warn("[v0.7.0] SHACL shape query failed (graceful fallback):", err);
+    return [];
+  }
+}
+
+/**
+ * Batch-check which entities from the given list are missing at least one
+ * required predicate from the provided SHACL shapes.
+ *
+ * Returns an array of entity IRIs that have at least one SHACL violation.
+ * Gracefully returns an empty array on error.
+ */
+export async function fetchShaclViolatingEntities(
+  endpointUrl: string,
+  shapes: ShaclPropertyShape[],
+  entityIRIs: string[],
+  graphIRI: string | null,
+  auth?: EndpointConfig["auth"],
+): Promise<string[]> {
+  try {
+    const requiredPaths = shapes
+      .filter((s) => (s.minCount ?? 0) >= 1)
+      .map((s) => s.path);
+
+    if (requiredPaths.length === 0 || entityIRIs.length === 0) return [];
+
+    const query = buildShaclViolationCheckQuery(entityIRIs, requiredPaths, graphIRI);
+    if (!query) return [];
+
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return bindings.map((b) => b.entity?.value).filter(Boolean) as string[];
+  } catch (err) {
+    console.warn("[v0.7.0] SHACL violation check failed (graceful fallback):", err);
+    return [];
   }
 }

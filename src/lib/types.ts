@@ -73,6 +73,9 @@ export interface PredicateSummary {
   range?: string;
   rangeLabel?: string;
   owlCharacteristics?: string[];
+  // v0.7.0 — SHACL-sourced label and description (class-context-specific)
+  shaclName?: string;
+  shaclDescription?: string;
 }
 
 export interface ClassSummary {
@@ -164,6 +167,45 @@ export interface SearchResult {
   label: string;
   type?: string;
   typeLabel?: string;
+}
+
+// ── SHACL types (v0.7.0) ──────────────────────────────────────
+
+/**
+ * One property shape from a SHACL NodeShape targeting a class.
+ * Collected by `buildShaclShapeQuery` / `parseShaclShapes`.
+ */
+export interface ShaclPropertyShape {
+  /** sh:path — the predicate IRI this shape constrains. */
+  path: string;
+  /** sh:name — human-readable label for this property in this class context. */
+  name?: string;
+  /** sh:description — description for this property in this class context. */
+  description?: string;
+  /** sh:order — display sort order. */
+  order?: number;
+  /** sh:group — property group IRI. */
+  group?: string;
+  /** sh:datatype — expected XSD datatype IRI. */
+  datatype?: string;
+  /** sh:class — expected class IRI for IRI-valued properties. */
+  class?: string;
+  /** sh:minCount — minimum required values (0 = optional). */
+  minCount?: number;
+  /** sh:maxCount — maximum allowed values. */
+  maxCount?: number;
+}
+
+/**
+ * A SHACL data quality violation derived from shapes and entity predicates.
+ */
+export interface ShaclViolation {
+  /** The predicate IRI that has the violation. */
+  path: string;
+  /** Human-readable violation description. */
+  message: string;
+  /** Violation severity level. */
+  severity: "Info" | "Warning" | "Violation";
 }
 
 // ── Detail levels ──────────────────────────────────────────────

@@ -297,23 +297,25 @@ Try filtering researchers first, or follow a different path.
 ### Changes
 
 **`src/lib/metadata-queries.ts`** — SHACL shape query
-- On-demand query when a type view or entity detail opens for a known type.
-- Collects `sh:name`, `sh:description`, `sh:order`, `sh:group`, `sh:datatype`, `sh:class`, `sh:minCount`, `sh:maxCount` for the target class.
-- Cached by class IRI.
-- Query spec: [plans/annotations.md § 10.2](plans/annotations.md#102-shacl-shape-metadata-query).
+- [x] On-demand query when a type view or entity detail opens for a known type.
+- [x] Collects `sh:name`, `sh:description`, `sh:order`, `sh:group`, `sh:datatype`, `sh:class`, `sh:minCount`, `sh:maxCount` for the target class.
+- [x] Cached by class IRI.
+- [x] Query spec: [plans/annotations.md § 10.2](plans/annotations.md#102-shacl-shape-metadata-query).
 
 **Entity cards** — small warning badge on SHACL violations.
+- [x] Badge appears only on entities with actual violations.
 
 **Entity detail** — SHACL results panel (quiet, collapsible)
-- Shows violation message, severity (Info / Warning / Violation), affected predicate.
-- Empty state improvements: "Expected one publication date, but none found" when shape data supports it.
+- [x] Shows violation message, severity (Info / Warning / Violation), affected predicate.
+- [x] Empty state improvements: "Expected one publication date, but none found" when shape data supports it.
 
 **`PredicateSummary`** — SHACL-sourced `sh:name` and `sh:description` added to label precedence.
+- [x] `shaclName?: string` and `shaclDescription?: string` fields added to `PredicateSummary`.
 
 ### Acceptance criteria
-- Shape query degrades gracefully on graphs without SHACL.
-- Badge appears only on entities with actual violations.
-- Panel is visually distinct from primary entity content.
+- [x] Shape query degrades gracefully on graphs without SHACL.
+- [x] Badge appears only on entities with actual violations.
+- [x] Panel is visually distinct from primary entity content.
 
 ---
 

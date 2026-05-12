@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import useSWR from "swr";
 import { useEntitySet } from "@/hooks/useEntitySet";
 import { useNavigationStore } from "@/stores/navigation-store";
 import { useEndpointStore } from "@/stores/endpoint-store";
@@ -10,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { shortIRI } from "@/lib/utils";
 import { LAYER_DETAIL } from "@/lib/types";
+import { fetchShaclShapes, fetchShaclViolatingEntities } from "@/app/actions/graph";
 
 export function EntitySet() {
   const { data: entities, isLoading } = useEntitySet();
@@ -17,7 +19,44 @@ export function EntitySet() {
   const back = useNavigationStore((s) => s.back);
   const clearAllFacets = useNavigationStore((s) => s.clearAllFacets);
   const getIntrospection = useEndpointStore((s) => s.getIntrospection);
+  const getEndpoint = useEndpointStore((s) => s.getEndpoint);
   const detailLevel = LAYER_DETAIL[frame.activeLayer] ?? "headline";
+
+  // v0.7.0 — Fetch SHACL shapes for the current class (on-demand, cached by SWR)
+  const endpoint = frame.endpointId ? getEndpoint(frame.endpointId) : undefined;
+  const focusClass = frame.focusClass;
+
+  const { data: shaclShapes = [] } = useSWR(
+    endpoint && focusClass && frame.context === "set"
+      ? `shacl-shapes:${frame.endpointId}:${frame.graphIRI}:${focusClass}`
+      : null,
+    async () => {
+      if (!endpoint || !focusClass) return [];
+      return fetchShaclShapes(endpoint.sparqlUrl, focusClass, frame.graphIRI, endpoint.auth);
+    },
+    { revalidateOnFocus: false },
+  );
+
+  // v0.7.0 — Batch-check which entities have SHACL violations
+  const entityIRIs = entities?.map((e) => e.iri) ?? [];
+  const { data: violatingIRIs = [] } = useSWR(
+    shaclShapes.length > 0 && entityIRIs.length > 0 && endpoint
+      ? `shacl-violations:${frame.endpointId}:${frame.graphIRI}:${focusClass}:${entityIRIs.slice(0, 20).join(",")}`
+      : null,
+    async () => {
+      if (!endpoint) return [];
+      return fetchShaclViolatingEntities(
+        endpoint.sparqlUrl,
+        shaclShapes,
+        entityIRIs,
+        frame.graphIRI,
+        endpoint.auth,
+      );
+    },
+    { revalidateOnFocus: false },
+  );
+
+  const violatingSet = new Set(violatingIRIs);
 
   if (isLoading && !entities?.length) {
     return (
@@ -56,7 +95,11 @@ export function EntitySet() {
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
             >
-              <EntityCard entity={entity} detailLevel={detailLevel} />
+              <EntityCard
+                entity={entity}
+                detailLevel={detailLevel}
+                hasViolations={violatingSet.has(entity.iri)}
+              />
             </motion.div>
           ))}
         </AnimatePresence>

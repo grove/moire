@@ -335,3 +335,158 @@ export function parseResourceAnnotation(bindings: MetadataBinding[]): ResourceAn
     temporalInfo: hasTemporalInfo ? temporalInfo : undefined,
   };
 }
+
+// ── v0.7.0 — SHACL shape query ────────────────────────────────────────────────
+
+import type { ShaclPropertyShape, ShaclViolation } from "./types";
+
+/**
+ * Build a SPARQL SELECT query that fetches all SHACL property shapes for a
+ * given target class.
+ *
+ * Run on-demand when an entity detail or type view opens for a known class.
+ * Queries the default graph — SHACL shapes are typically published in the
+ * ontology / schema graph, not inside named data graphs.
+ *
+ * Returns "" for invalid class IRIs.
+ */
+export function buildShaclShapeQuery(classIRI: string): string {
+  if (!isValidIRI(classIRI)) return "";
+
+  return `
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?path ?name ?description ?order ?group ?datatype ?class ?nodeKind ?minCount ?maxCount
+WHERE {
+  ?shape a sh:NodeShape ;
+         sh:targetClass <${classIRI}> ;
+         sh:property ?propertyShape .
+
+  ?propertyShape sh:path ?path .
+  OPTIONAL { ?propertyShape sh:name ?name }
+  OPTIONAL { ?propertyShape sh:description ?description }
+  OPTIONAL { ?propertyShape sh:order ?order }
+  OPTIONAL { ?propertyShape sh:group ?group }
+  OPTIONAL { ?propertyShape sh:datatype ?datatype }
+  OPTIONAL { ?propertyShape sh:class ?class }
+  OPTIONAL { ?propertyShape sh:nodeKind ?nodeKind }
+  OPTIONAL { ?propertyShape sh:minCount ?minCount }
+  OPTIONAL { ?propertyShape sh:maxCount ?maxCount }
+
+  FILTER(isIRI(?path))
+}
+`.trim();
+}
+
+/**
+ * Parse SPARQL bindings from a SHACL shape query into an array of
+ * {@link ShaclPropertyShape} objects.
+ *
+ * Multiple rows may exist for the same path (one per language variant of sh:name).
+ * Scalar fields use "first wins" semantics.
+ */
+export function parseShaclShapes(bindings: MetadataBinding[]): ShaclPropertyShape[] {
+  const shapes = new Map<string, ShaclPropertyShape>();
+
+  for (const row of bindings) {
+    const path = row.path?.value;
+    if (!path) continue;
+
+    if (!shapes.has(path)) {
+      shapes.set(path, { path });
+    }
+    const shape = shapes.get(path)!;
+
+    if (row.name?.value && !shape.name) shape.name = row.name.value;
+    if (row.description?.value && !shape.description) shape.description = row.description.value;
+    if (row.order?.value && shape.order === undefined) {
+      const parsed = parseFloat(row.order.value);
+      if (!isNaN(parsed)) shape.order = parsed;
+    }
+    if (row.group?.value && !shape.group) shape.group = row.group.value;
+    if (row.datatype?.value && !shape.datatype) shape.datatype = row.datatype.value;
+    if (row.class?.value && !shape.class) shape.class = row.class.value;
+    if (row.minCount?.value && shape.minCount === undefined) {
+      const parsed = parseInt(row.minCount.value, 10);
+      if (!isNaN(parsed)) shape.minCount = parsed;
+    }
+    if (row.maxCount?.value && shape.maxCount === undefined) {
+      const parsed = parseInt(row.maxCount.value, 10);
+      if (!isNaN(parsed)) shape.maxCount = parsed;
+    }
+  }
+
+  // Sort by sh:order when available
+  return Array.from(shapes.values()).sort((a, b) => {
+    if (a.order !== undefined && b.order !== undefined) return a.order - b.order;
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    return 0;
+  });
+}
+
+/**
+ * Build a SPARQL SELECT query that checks which entities from a given set are
+ * missing required predicates (sh:minCount >= 1) for their class.
+ *
+ * Returns bindings of `?entity` IRIs that have at least one required predicate
+ * absent. Queries the named graph when `graphIRI` is provided, otherwise the
+ * default graph.
+ *
+ * Returns "" when `entityIRIs` or `requiredPredicateIRIs` is empty.
+ */
+export function buildShaclViolationCheckQuery(
+  entityIRIs: string[],
+  requiredPredicateIRIs: string[],
+  graphIRI: string | null,
+): string {
+  const validEntities = entityIRIs.filter(isValidIRI);
+  const validPaths = requiredPredicateIRIs.filter(isValidIRI);
+  if (validEntities.length === 0 || validPaths.length === 0) return "";
+
+  const entitiesValues = validEntities.map((iri) => `<${iri}>`).join(" ");
+  const pathsValues = validPaths.map((iri) => `<${iri}>`).join(" ");
+
+  const pattern = graphIRI
+    ? `GRAPH <${graphIRI}> { ?entity ?path ?value }`
+    : `?entity ?path ?value`;
+
+  return `
+SELECT DISTINCT ?entity
+WHERE {
+  VALUES ?entity { ${entitiesValues} }
+  VALUES ?path { ${pathsValues} }
+  FILTER NOT EXISTS { ${pattern} }
+}
+`.trim();
+}
+
+/**
+ * Derive SHACL violations by comparing shapes' required predicates against the
+ * predicate IRIs that an entity actually has.
+ *
+ * Intended for client-side use in entity detail — no extra SPARQL required when
+ * `entityPredicateIRIs` is already available.
+ */
+export function computeShaclViolations(
+  shapes: ShaclPropertyShape[],
+  entityPredicateIRIs: string[],
+): ShaclViolation[] {
+  const known = new Set(entityPredicateIRIs);
+  const violations: ShaclViolation[] = [];
+
+  for (const shape of shapes) {
+    if ((shape.minCount ?? 0) >= 1 && !known.has(shape.path)) {
+      const predicateLabel = shape.name ?? shape.path.split(/[#/]/).pop() ?? shape.path;
+      const count = shape.minCount === 1 ? "one" : String(shape.minCount);
+      violations.push({
+        path: shape.path,
+        message: `Expected at least ${count} ${predicateLabel}.`,
+        severity: "Warning",
+      });
+    }
+  }
+
+  return violations;
+}

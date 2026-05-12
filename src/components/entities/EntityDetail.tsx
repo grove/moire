@@ -1,15 +1,17 @@
 "use client";
 
 import useSWR from "swr";
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PredicateTable } from "./PredicateTable";
 import { shortIRI } from "@/lib/utils";
 import { useNavigationStore } from "@/stores/navigation-store";
 import { useEndpointStore } from "@/stores/endpoint-store";
-import { fetchResourceAnnotations } from "@/app/actions/graph";
+import { fetchResourceAnnotations, fetchEntityPredicates, fetchShaclShapes } from "@/app/actions/graph";
+import { computeShaclViolations } from "@/lib/metadata-queries";
 import type { EntityNode, ClassSummary, ResourceAnnotation } from "@/lib/types";
-import { ChevronRight, Calendar, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { ChevronRight, Calendar, ExternalLink, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Props {
   entity: EntityNode;
@@ -78,6 +80,38 @@ export function EntityDetail({ entity }: Props) {
     },
     { revalidateOnFocus: false },
   );
+
+  // v0.7.0 — SHACL shapes for entity type (on-demand, cached by SWR)
+  const { data: shaclShapes = [] } = useSWR(
+    endpoint && entity.type
+      ? `shacl-shapes:${frame.endpointId}:${frame.graphIRI}:${entity.type}`
+      : null,
+    async () => {
+      if (!endpoint || !entity.type) return [];
+      return fetchShaclShapes(endpoint.sparqlUrl, entity.type, frame.graphIRI, endpoint.auth);
+    },
+    { revalidateOnFocus: false },
+  );
+
+  // v0.7.0 — Entity predicates for violation checking (same SWR key as PredicateTable → no extra request)
+  const predicateKey = endpoint
+    ? `predicates:${frame.endpointId}:${frame.graphIRI}:${entity.iri}`
+    : null;
+  const { data: predicateRows = [] } = useSWR(
+    predicateKey,
+    async () => {
+      if (!endpoint) return [];
+      return fetchEntityPredicates(endpoint.sparqlUrl, entity.iri, frame.graphIRI, endpoint.auth);
+    },
+    { revalidateOnFocus: false },
+  );
+
+  // Derive SHACL violations client-side (no extra SPARQL needed)
+  const entityPredicateIRIs = predicateRows.map((r) => r.predicate);
+  const shaclViolations = computeShaclViolations(shaclShapes, entityPredicateIRIs);
+
+  // Collapsible state for the SHACL panel
+  const [shaclExpanded, setShaclExpanded] = useState(false);
 
   return (
     <Card className="border-border/60">
@@ -217,6 +251,53 @@ export function EntityDetail({ entity }: Props) {
                 {m.kind === "image" ? "Image" : m.kind === "page" ? "Page" : "Document"}
               </a>
             ))}
+          </div>
+        </CardContent>
+      )}
+
+      {/* v0.7.0 — SHACL data quality panel (quiet, collapsible) */}
+      {shaclViolations.length > 0 && (
+        <CardContent data-testid="shacl-violations">
+          <div className="border border-amber-200 bg-amber-50 rounded-md overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-amber-100 transition-colors"
+              onClick={() => setShaclExpanded((prev) => !prev)}
+              aria-expanded={shaclExpanded}
+              aria-controls="shacl-violations-list"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+                <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                Data Quality ({shaclViolations.length}{" "}
+                {shaclViolations.length === 1 ? "issue" : "issues"})
+              </span>
+              {shaclExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5 text-amber-600" aria-hidden />
+              )}
+            </button>
+
+            {shaclExpanded && (
+              <ul
+                id="shacl-violations-list"
+                className="px-3 pb-3 pt-1 space-y-1.5"
+                role="list"
+                aria-label="SHACL data quality violations"
+              >
+                {shaclViolations.map((v, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-amber-800">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-300 text-amber-700 bg-white flex-shrink-0 mt-0.5"
+                    >
+                      {v.severity}
+                    </Badge>
+                    <span>{v.message}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </CardContent>
       )}

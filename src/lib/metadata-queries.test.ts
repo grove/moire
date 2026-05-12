@@ -7,6 +7,10 @@ import {
   OWL_CHARACTERISTIC_LABELS,
   buildResourceAnnotationQuery,
   parseResourceAnnotation,
+  buildShaclShapeQuery,
+  parseShaclShapes,
+  buildShaclViolationCheckQuery,
+  computeShaclViolations,
 } from "./metadata-queries";
 import type { PredicateSummary } from "./types";
 
@@ -441,5 +445,281 @@ describe("parseResourceAnnotation", () => {
     ];
     const result = parseResourceAnnotation(bindings);
     expect(result.temporalInfo).toBeUndefined();
+  });
+});
+
+// ── buildShaclShapeQuery ───────────────────────────────────────
+
+describe("buildShaclShapeQuery", () => {
+  const VALID_CLASS = "http://example.org/Person";
+
+  it("returns empty string for invalid class IRI", () => {
+    expect(buildShaclShapeQuery("not an IRI")).toBe("");
+    expect(buildShaclShapeQuery("")).toBe("");
+  });
+
+  it("returns a non-empty query for a valid class IRI", () => {
+    expect(buildShaclShapeQuery(VALID_CLASS).length).toBeGreaterThan(0);
+  });
+
+  it("embeds the class IRI in sh:targetClass position", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain(`<${VALID_CLASS}>`);
+    expect(q).toContain("sh:targetClass");
+  });
+
+  it("selects sh:name and sh:description", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("?name");
+    expect(q).toContain("?description");
+  });
+
+  it("selects sh:minCount and sh:maxCount", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("?minCount");
+    expect(q).toContain("?maxCount");
+  });
+
+  it("selects sh:order and sh:group", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("?order");
+    expect(q).toContain("?group");
+  });
+
+  it("selects sh:datatype and sh:class", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("?datatype");
+    expect(q).toContain("?class");
+  });
+
+  it("references sh:NodeShape", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("sh:NodeShape");
+  });
+
+  it("does not include a GRAPH clause (shapes live in default/ontology graph)", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).not.toContain("GRAPH");
+  });
+
+  it("filters non-IRI paths via FILTER(isIRI(?path))", () => {
+    const q = buildShaclShapeQuery(VALID_CLASS);
+    expect(q).toContain("isIRI(?path)");
+  });
+});
+
+// ── parseShaclShapes ───────────────────────────────────────────
+
+describe("parseShaclShapes", () => {
+  const EX_NAME = "http://example.org/name";
+  const EX_DATE = "http://example.org/publishedDate";
+
+  it("returns empty array for empty bindings", () => {
+    expect(parseShaclShapes([])).toEqual([]);
+  });
+
+  it("parses a single shape with name and minCount", () => {
+    const bindings = [
+      {
+        path: { type: "uri", value: EX_NAME },
+        name: { type: "literal", value: "Full Name" },
+        minCount: { type: "literal", value: "1" },
+      },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].path).toBe(EX_NAME);
+    expect(shapes[0].name).toBe("Full Name");
+    expect(shapes[0].minCount).toBe(1);
+  });
+
+  it("parses description, order, and maxCount", () => {
+    const bindings = [
+      {
+        path: { type: "uri", value: EX_DATE },
+        description: { type: "literal", value: "Publication date." },
+        order: { type: "literal", value: "10" },
+        maxCount: { type: "literal", value: "1" },
+      },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes[0].description).toBe("Publication date.");
+    expect(shapes[0].order).toBe(10);
+    expect(shapes[0].maxCount).toBe(1);
+  });
+
+  it("de-duplicates multiple rows for the same path (first-wins scalar fields)", () => {
+    const bindings = [
+      { path: { type: "uri", value: EX_NAME }, name: { type: "literal", value: "First Name" } },
+      { path: { type: "uri", value: EX_NAME }, name: { type: "literal", value: "Second Name" } },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].name).toBe("First Name");
+  });
+
+  it("sorts shapes by sh:order when available", () => {
+    const bindings = [
+      { path: { type: "uri", value: EX_DATE }, order: { type: "literal", value: "20" } },
+      { path: { type: "uri", value: EX_NAME }, order: { type: "literal", value: "10" } },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes[0].path).toBe(EX_NAME);  // order 10 first
+    expect(shapes[1].path).toBe(EX_DATE);  // order 20 second
+  });
+
+  it("handles shapes without sh:order (sorted after ordered shapes)", () => {
+    const bindings = [
+      { path: { type: "uri", value: EX_DATE } },  // no order
+      { path: { type: "uri", value: EX_NAME }, order: { type: "literal", value: "1" } },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes[0].path).toBe(EX_NAME);  // ordered first
+  });
+
+  it("ignores rows with missing path", () => {
+    const bindings = [
+      { name: { type: "literal", value: "Orphaned" } },  // no path
+      { path: { type: "uri", value: EX_NAME }, name: { type: "literal", value: "Name" } },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].name).toBe("Name");
+  });
+
+  it("handles minCount = 0 (optional property)", () => {
+    const bindings = [
+      { path: { type: "uri", value: EX_NAME }, minCount: { type: "literal", value: "0" } },
+    ];
+    const shapes = parseShaclShapes(bindings);
+    expect(shapes[0].minCount).toBe(0);
+  });
+});
+
+// ── buildShaclViolationCheckQuery ──────────────────────────────
+
+describe("buildShaclViolationCheckQuery", () => {
+  const ENTITY_A = "http://example.org/alice";
+  const ENTITY_B = "http://example.org/bob";
+  const PRED_NAME = "http://example.org/name";
+  const PRED_DATE = "http://example.org/publishedDate";
+  const GRAPH = "http://example.org/graph";
+
+  it("returns empty string when entityIRIs is empty", () => {
+    expect(buildShaclViolationCheckQuery([], [PRED_NAME], null)).toBe("");
+  });
+
+  it("returns empty string when requiredPredicateIRIs is empty", () => {
+    expect(buildShaclViolationCheckQuery([ENTITY_A], [], null)).toBe("");
+  });
+
+  it("includes entity IRIs in VALUES clause", () => {
+    const q = buildShaclViolationCheckQuery([ENTITY_A, ENTITY_B], [PRED_NAME], null);
+    expect(q).toContain(`<${ENTITY_A}>`);
+    expect(q).toContain(`<${ENTITY_B}>`);
+  });
+
+  it("includes predicate IRIs in VALUES clause", () => {
+    const q = buildShaclViolationCheckQuery([ENTITY_A], [PRED_NAME, PRED_DATE], null);
+    expect(q).toContain(`<${PRED_NAME}>`);
+    expect(q).toContain(`<${PRED_DATE}>`);
+  });
+
+  it("uses FILTER NOT EXISTS to detect missing predicates", () => {
+    const q = buildShaclViolationCheckQuery([ENTITY_A], [PRED_NAME], null);
+    expect(q).toContain("FILTER NOT EXISTS");
+  });
+
+  it("uses named GRAPH clause when graphIRI is provided", () => {
+    const q = buildShaclViolationCheckQuery([ENTITY_A], [PRED_NAME], GRAPH);
+    expect(q).toContain(`GRAPH <${GRAPH}>`);
+  });
+
+  it("does not use GRAPH clause when graphIRI is null", () => {
+    const q = buildShaclViolationCheckQuery([ENTITY_A], [PRED_NAME], null);
+    expect(q).not.toContain("GRAPH");
+  });
+
+  it("filters out invalid IRIs silently", () => {
+    const q = buildShaclViolationCheckQuery(
+      [ENTITY_A, "not an IRI"],
+      [PRED_NAME, "also bad"],
+      null,
+    );
+    expect(q).toContain(`<${ENTITY_A}>`);
+    expect(q).not.toContain("not an IRI");
+    expect(q).not.toContain("also bad");
+  });
+
+  it("returns empty string when all entities and predicates are invalid IRIs", () => {
+    const q = buildShaclViolationCheckQuery(["bad"], ["also bad"], null);
+    expect(q).toBe("");
+  });
+});
+
+// ── computeShaclViolations ─────────────────────────────────────
+
+describe("computeShaclViolations", () => {
+  const EX_NAME = "http://example.org/name";
+  const EX_DATE = "http://example.org/publishedDate";
+  const EX_OPTIONAL = "http://example.org/abstract";
+
+  const shapes = [
+    { path: EX_NAME, name: "Full Name", minCount: 1 },
+    { path: EX_DATE, name: "Publication Date", minCount: 1 },
+    { path: EX_OPTIONAL, minCount: 0 },  // optional
+  ];
+
+  it("returns empty array when no shapes have minCount >= 1", () => {
+    const optionalShapes = [{ path: EX_OPTIONAL, minCount: 0 }];
+    expect(computeShaclViolations(optionalShapes, [])).toEqual([]);
+  });
+
+  it("returns empty array when entity has all required predicates", () => {
+    const result = computeShaclViolations(shapes, [EX_NAME, EX_DATE]);
+    expect(result).toEqual([]);
+  });
+
+  it("returns violation for missing required predicate", () => {
+    const result = computeShaclViolations(shapes, [EX_NAME]);  // EX_DATE missing
+    expect(result).toHaveLength(1);
+    expect(result[0].path).toBe(EX_DATE);
+    expect(result[0].severity).toBe("Warning");
+  });
+
+  it("includes human-readable message with sh:name when available", () => {
+    const result = computeShaclViolations(shapes, []);
+    const nameViolation = result.find((v) => v.path === EX_NAME);
+    expect(nameViolation?.message).toContain("Full Name");
+  });
+
+  it("falls back to local name when sh:name is absent", () => {
+    const shapesNoName = [{ path: EX_DATE, minCount: 1 }];
+    const result = computeShaclViolations(shapesNoName, []);
+    expect(result[0].message).toContain("publishedDate");
+  });
+
+  it("uses 'one' for minCount = 1 in the message", () => {
+    const result = computeShaclViolations(shapes, []);
+    const nameViolation = result.find((v) => v.path === EX_NAME);
+    expect(nameViolation?.message).toContain("one");
+  });
+
+  it("does not report violations for optional predicates (minCount = 0)", () => {
+    const result = computeShaclViolations(shapes, []);
+    const optionalViolation = result.find((v) => v.path === EX_OPTIONAL);
+    expect(optionalViolation).toBeUndefined();
+  });
+
+  it("does not report violations for shapes without minCount", () => {
+    const shapesNoMin = [{ path: EX_OPTIONAL }];
+    const result = computeShaclViolations(shapesNoMin, []);
+    expect(result).toEqual([]);
+  });
+
+  it("returns violations for all missing required predicates", () => {
+    const result = computeShaclViolations(shapes, []);
+    // name and date are required; optional has minCount 0
+    expect(result).toHaveLength(2);
   });
 });

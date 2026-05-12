@@ -6,11 +6,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { shortIRI } from "@/lib/utils";
 import { useNavigationStore } from "@/stores/navigation-store";
+import { AlertTriangle } from "lucide-react";
 import type { EntityNode, DetailLevel, DETAIL_TYPOGRAPHY } from "@/lib/types";
 
 interface Props {
   entity: EntityNode;
   detailLevel: DetailLevel;
+  /** Whether this entity has SHACL data quality violations. */
+  hasViolations?: boolean;
 }
 
 const TYPOGRAPHY: typeof DETAIL_TYPOGRAPHY = {
@@ -40,7 +43,7 @@ const TYPOGRAPHY: typeof DETAIL_TYPOGRAPHY = {
   },
 };
 
-export function EntityCard({ entity, detailLevel }: Props) {
+export function EntityCard({ entity, detailLevel, hasViolations }: Props) {
   const pushFocus = useNavigationStore((s) => s.pushFocus);
   const typo = TYPOGRAPHY[detailLevel];
 
@@ -57,9 +60,22 @@ export function EntityCard({ entity, detailLevel }: Props) {
           aria-label={`Navigate to ${entity.label}`}
         >
           <CardHeader className="p-3 pb-1">
-            <CardTitle className={cn(typo.title)}>
-              {entity.label}
-            </CardTitle>
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className={cn(typo.title)}>
+                {entity.label}
+              </CardTitle>
+              {hasViolations && (
+                <span
+                  data-testid="shacl-violation-badge"
+                  className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5"
+                  title="This record has data quality issues"
+                  aria-label="Data quality warning"
+                >
+                  <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                  Quality
+                </span>
+              )}
+            </div>
 
             {detailLevel !== "label" && entity.type && (
               <Badge variant="secondary" className={cn("w-fit mt-1", typo.badge)}>
@@ -80,6 +96,9 @@ export function EntityCard({ entity, detailLevel }: Props) {
       <TooltipContent>
         <p>Open detail view for <span className="font-semibold">{entity.label}</span></p>
         <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{entity.iri}</p>
+        {hasViolations && (
+          <p className="text-amber-600 text-xs mt-1">⚠ Data quality warnings present</p>
+        )}
       </TooltipContent>
     </Tooltip>
   );
