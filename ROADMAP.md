@@ -82,40 +82,40 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 **Setup**: install Vitest + `@vitest/coverage-v8`; add `vitest.config.ts` with `@` alias; add `test:unit` / `test:unit:coverage` scripts to `package.json`.
 
 **`src/lib/sparql.test.ts`**
-- [ ] `buildLayerQuery` throws for unsupported layer values
-- [ ] `buildLayerQuery` throws when `focusIRI` is not a valid IRI
-- [ ] `buildLayerQuery` omits `GRAPH` clause when `graphIRI` is null
-- [ ] `buildLayerQuery` wraps in `GRAPH` clause when `graphIRI` is provided
-- [ ] `buildLayerQuery` inserts `rdf:type` filter when facet dimension is `rdf:type`
-- [ ] `buildLayerQuery` skips non-IRI facet dimensions without throwing — regression test for the documented IRI validation bug
-- [ ] `buildLayerQuery` uses `STR()` comparison for literal facet values
-- [ ] `buildSetTraversalQuery` with `direction = "incoming"` reverses the triple pattern
-- [ ] `buildFacetCountQuery` produces a `GROUP BY` over `?value`
-- [ ] `buildSearchQuery` escapes double-quotes, backslashes, and newlines in the search term
+- [x] `buildLayerQuery` throws for unsupported layer values
+- [x] `buildLayerQuery` throws when `focusIRI` is not a valid IRI
+- [x] `buildLayerQuery` omits `GRAPH` clause when `graphIRI` is null
+- [x] `buildLayerQuery` wraps in `GRAPH` clause when `graphIRI` is provided
+- [x] `buildLayerQuery` inserts `rdf:type` filter when facet dimension is `rdf:type`
+- [x] `buildLayerQuery` skips non-IRI facet dimensions without throwing — regression test for the documented IRI validation bug
+- [x] `buildLayerQuery` uses `STR()` comparison for literal facet values
+- [x] `buildSetTraversalQuery` with `direction = "incoming"` reverses the triple pattern
+- [x] `buildFacetCountQuery` produces a `GROUP BY` over `?value`
+- [x] `buildSearchQuery` escapes double-quotes, backslashes, and newlines in the search term
 
 **`src/lib/facet-generator.test.ts`**
-- [ ] A predicate with `isStructural = true` is not returned as a facet candidate
-- [ ] `valueKind = "iri"` with `objectCount = 5` → `FacetDefinition` with `valueType = "uri"`
-- [ ] `valueKind = "date"` → `valueType = "date-range"`; `valueKind = "numeric"` → `"numeric-range"`
-- [ ] Predicates in `STRUCTURAL_PREDICATES` (e.g., `owl:sameAs`) receive `isStructural = true`
-- [ ] `computeCardinality`: ratio ≤ 1.1 → `"single"`, 1.2–1.5 → `"usually-single"`, 1.6–5.0 → `"multi"`, > 5 → `"highly-multi"`
-- [ ] A `"relational"` predicate scores higher than a `"structural"` one
-- [ ] Output list is ordered by descending usefulness score
+- [x] A predicate with `isStructural = true` is not returned as a facet candidate
+- [x] `valueKind = "iri"` with `objectCount = 5` → `FacetDefinition` with `valueType = "uri"`
+- [x] `valueKind = "date"` → `valueType = "date-range"`; `valueKind = "numeric"` → `"numeric-range"`
+- [x] Predicates in `STRUCTURAL_PREDICATES` (e.g., `owl:sameAs`) receive `isStructural = true`
+- [x] `computeCardinality`: ratio ≤ 1.1 → `"single"`, 1.2–1.5 → `"usually-single"`, 1.6–5.0 → `"multi"`, > 5 → `"highly-multi"`
+- [x] A `"relational"` predicate scores higher than a `"structural"` one
+- [x] Output list is ordered by descending usefulness score
 
 **`src/lib/context-header.test.ts`**
-- [ ] `context = "graphs"` returns `""`
-- [ ] `context = "types"` returns `"Types in <graph label>"`
-- [ ] `context = "entity"` returns label; falls back to `shortIRI` when label is undefined
-- [ ] `context = "set"` with no facets returns the pluralised class label
-- [ ] `context = "set"` with facets prepends facet phrases before the class label
-- [ ] `context = "set"` with `navigationPredicate` produces `"<pred> of <parent header>"`
-- [ ] `context = "relationships"` produces `"Relationships on <parent header>"`
-- [ ] Recursive two-deep traversal produces the correct composed string
+- [x] `context = "graphs"` returns `""`
+- [x] `context = "types"` returns `"Types in <graph label>"`
+- [x] `context = "entity"` returns label; falls back to `shortIRI` when label is undefined
+- [x] `context = "set"` with no facets returns the pluralised class label
+- [x] `context = "set"` with facets prepends facet phrases before the class label
+- [x] `context = "set"` with `navigationPredicate` produces `"<pred> of <parent header>"`
+- [x] `context = "relationships"` produces `"Relationships on <parent header>"`
+- [x] Recursive two-deep traversal produces the correct composed string
 
 **`src/lib/vocabulary-registry.test.ts`**
-- [ ] `lookupPredicate` returns the correct entry for well-known IRIs (e.g., `rdfs:label`)
-- [ ] `lookupPredicate` returns undefined for unknown IRIs
-- [ ] No IRI appears twice in the registry
+- [x] `lookupPredicate` returns the correct entry for well-known IRIs (e.g., `rdfs:label`)
+- [x] `lookupPredicate` returns undefined for unknown IRIs
+- [x] No IRI appears twice in the registry
 
 ### v0.2.2 — Track 2: Unit tests for `src/stores/`
 
@@ -151,7 +151,7 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 - [ ] Facet count query rejects non-IRI facet dimensions before sending the query
 
 ### Acceptance criteria
-- [ ] `npm run test:unit` passes; `src/lib/` line coverage ≥ 80%
+- [x] `npm run test:unit` passes; `src/lib/` line coverage ≥ 80%
 - [ ] All 12 existing E2E specs pass after reliability fixes
 - [ ] `data-testid` attributes in place on the five listed components
 - [ ] IRI validation regression test exists and passes against the mock server
