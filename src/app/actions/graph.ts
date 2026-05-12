@@ -25,6 +25,7 @@ import {
   buildSetTraversalQuery,
   buildPredicateObjectsQuery,
   buildRelationshipsQuery,
+  buildPredicateTopValuesQuery,
 } from "@/lib/sparql";
 import { annotatePredicates } from "@/lib/facet-generator";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
@@ -518,6 +519,8 @@ export interface RelationshipInfo {
   vocabularyBadge?: string;
   cardinality?: import("@/lib/types").PredicateCardinality;
   usefulness?: number;
+  /** Coverage: fraction of entities in the set that have this predicate (0–100). */
+  coveragePercent?: number;
 }
 
 export async function fetchRelationships(
@@ -571,12 +574,40 @@ export async function fetchRelationships(
     if (objectCount < 3) usefulness -= 15;
     usefulness = Math.max(0, Math.min(100, usefulness));
 
+    // Coverage: % of the set's entities that have this predicate
+    const coveragePercent = maxSubjectCount > 0
+      ? Math.round((subjectCount / maxSubjectCount) * 100)
+      : undefined;
+
     return {
       ...r,
       role: entry.role,
       vocabularyBadge: entry.badge,
       cardinality,
       usefulness,
+      coveragePercent,
     };
   });
+}
+
+// ── Predicate top values ────────────────────────────────────────
+
+export interface TopValue {
+  value: string;
+  count: number;
+}
+
+export async function fetchPredicateTopValues(
+  endpointUrl: string,
+  graphIRI: string | null,
+  predicateIRI: string,
+  classIRI: string | undefined,
+  auth?: EndpointConfig["auth"],
+): Promise<TopValue[]> {
+  const query = buildPredicateTopValuesQuery(graphIRI, predicateIRI, classIRI);
+  const bindings = await executeSparql(endpointUrl, query, auth);
+  return bindings.map((b) => ({
+    value: b.value?.value ?? "",
+    count: parseInt(b.count?.value ?? "0", 10),
+  }));
 }

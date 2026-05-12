@@ -53,20 +53,20 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **Traversal breadcrumb** _(new UI component)_
-- Shown below the context header on all navigations.
-- Format: `SE Researchers → affiliated with → Universities → located in → Cities`
-- Each chip shows: predicate role icon, predicate label, target type label.
-- Clicking any chip navigates back to that frame.
+- [x] Shown below the context header on all navigations.
+- [x] Format: `SE Researchers → affiliated with → Universities → located in → Cities`
+- [x] Each chip shows: predicate role icon, predicate label, target type label.
+- [x] Clicking any chip navigates back to that frame.
 
 **Hover tooltips** on predicate rows in the Relationships Browser and Jump strip
-- Show: role, cardinality hint, coverage percentage ("available on 94% of this set"), top 3 values with counts.
+- [x] Show: role, cardinality hint, coverage percentage ("available on 94% of this set"), top 3 values with counts.
 
-**Role icons** in Relationships Browser and Jump strip buttons.
+**Role icons** in Relationships Browser and Jump strip buttons. ✓
 
 ### Acceptance criteria
-- Breadcrumb appears on all navigation steps.
-- Tooltips render without layout shift.
-- Role icons are visually distinct and accessible.
+- [x] Breadcrumb appears on all navigation steps.
+- [x] Tooltips render without layout shift.
+- [x] Role icons are visually distinct and accessible.
 
 ---
 
@@ -77,7 +77,7 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 
 > **What you'll notice** _(developer-facing only)_: `npm run test:unit` gives a sub-second pass/fail signal for the query-building and scoring logic. The E2E suite stops swallowing silent failures and its matchers are precise enough to catch copy-paste regressions.
 
-### Track 1 — Unit tests for `src/lib/`
+### v0.2.1 — Track 1: Unit tests for `src/lib/`
 
 **Setup**: install Vitest + `@vitest/coverage-v8`; add `vitest.config.ts` with `@` alias; add `test:unit` / `test:unit:coverage` scripts to `package.json`.
 
@@ -117,7 +117,7 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 - [ ] `lookupPredicate` returns undefined for unknown IRIs
 - [ ] No IRI appears twice in the registry
 
-### Track 2 — Unit tests for `src/stores/`
+### v0.2.2 — Track 2: Unit tests for `src/stores/`
 
 **`src/stores/navigation-store.test.ts`**
 - [ ] Initial state has one frame and `pointer = 0`
@@ -132,7 +132,7 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 - [ ] `clearEndpoint()` resets to initial disconnected state
 - [ ] `setLabelPredicate(iri)` updates the predicate without changing other fields
 
-### Track 3 — E2E reliability fixes
+### v0.2.3 — Track 3: E2E reliability fixes
 
 - [ ] Tighten `/\d+\s+entit/` to `/(entity|entities)/` in `05-entity-set.spec.ts`, `10-facets.spec.ts`, `07-navigation.spec.ts`
 - [ ] Add `data-testid` attributes to graph cards, class rows, entity cards, relationship rows, and facet groups
@@ -140,7 +140,7 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 - [ ] Annotate intentional search-palette skips with `test.info().annotations.push(...)` instead of silent returns
 - [ ] Deduplicate `test.setTimeout(180_000)` into a shared fixture override in `fixtures.ts`
 
-### Track 4 — Integration tests for server actions
+### v0.2.4 — Track 4: Integration tests for server actions
 
 - [ ] Create `e2e/sparql-mock-server.ts`: minimal in-process HTTP server that returns configurable SPARQL JSON responses
 - [ ] `setupEndpoint` returns capabilities and summaries for a valid SPARQL response
@@ -453,7 +453,10 @@ First fully documented, publicly stable release. All annotation features from v0
 |---|---|---|
 | v0.1.0 | Predicate Foundation | Vocabulary registry, roles, cardinality, usefulness ordering |
 | v0.2.0 | Navigation Clarity | Traversal breadcrumbs, annotated tooltips |
-| — | Test Coverage | Vitest unit tests for `src/lib/` and `src/stores/`; E2E reliability fixes; mock-server integration tests |
+| v0.2.1 | Test Coverage | Vitest unit tests for `src/lib/` (sparql, facet-generator, context-header, vocabulary-registry) |
+| v0.2.2 | Test Coverage | Unit tests for `src/stores/` (navigation-store, endpoint-store) |
+| v0.2.3 | Test Coverage | E2E reliability fixes (matchers, data-testid, assertions, annotations) |
+| v0.2.4 | Test Coverage | Integration tests via mock SPARQL server |
 | v0.3.0 | Navigation Clarity | Natural context headers with inverse labels |
 | v0.4.0 | Metadata Harvest | Batched predicate metadata query (RDFS, SKOS, OWL) |
 | v0.5.0 | Metadata Harvest | Richer relationship browser rows, explanatory empty states |

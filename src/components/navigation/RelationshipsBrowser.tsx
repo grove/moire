@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { formatCount } from "@/lib/utils";
+import { RoleIcon } from "@/components/navigation/RoleIcon";
+import { PredicateTooltipContent } from "@/components/navigation/PredicateTooltip";
 import type { PredicateRole } from "@/lib/vocabulary-registry";
 
 // ── Role → UI section mapping ──────────────────────────────────
@@ -152,6 +154,9 @@ export function RelationshipsBrowser() {
                   rel={rel}
                   onFollow={() => traverseVia(rel.predicate)}
                   showFollow
+                  endpointId={frame.endpointId}
+                  graphIRI={frame.graphIRI}
+                  classIRI={frame.focusClass}
                 />
               ))}
               {otherItems.map((rel) => (
@@ -160,6 +165,9 @@ export function RelationshipsBrowser() {
                   rel={rel}
                   onFollow={() => traverseVia(rel.predicate)}
                   showFollow={false}
+                  endpointId={frame.endpointId}
+                  graphIRI={frame.graphIRI}
+                  classIRI={frame.focusClass}
                 />
               ))}
             </div>
@@ -189,23 +197,40 @@ function RelationshipRow({
   rel,
   onFollow,
   showFollow,
+  endpointId,
+  graphIRI,
+  classIRI,
 }: {
   rel: RelationshipInfo;
   onFollow: () => void;
   showFollow: boolean;
+  endpointId: string;
+  graphIRI: string | null;
+  classIRI: string | undefined;
 }) {
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group">
       <div className="flex items-center gap-2 min-w-0">
+        {/* Role icon — visually distinct, accessible */}
+        <RoleIcon role={rel.role} />
+
         <CardinalityIndicator cardinality={rel.cardinality} />
+
+        {/* Predicate label with rich tooltip */}
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="font-mono text-xs cursor-help truncate">{rel.label}</span>
           </TooltipTrigger>
-          <TooltipContent>
-            <p className="font-mono text-xs break-all">{rel.predicate}</p>
+          <TooltipContent className="p-3">
+            <PredicateTooltipContent
+              rel={rel}
+              endpointId={endpointId}
+              graphIRI={graphIRI}
+              classIRI={classIRI}
+            />
           </TooltipContent>
         </Tooltip>
+
         {rel.vocabularyBadge && (
           <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
             {rel.vocabularyBadge}
