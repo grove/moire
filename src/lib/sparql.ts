@@ -560,6 +560,37 @@ export function buildClassHierarchyQuery(graphIRI: string | null): string {
   `.trim();
 }
 
+// ── Predicate top-values query ─────────────────────────────────
+
+/**
+ * Returns the top N most-frequent values for a given predicate,
+ * optionally scoped to a class. Used to populate hover-tooltip previews.
+ */
+export function buildPredicateTopValuesQuery(
+  graphIRI: string | null,
+  predicateIRI: string,
+  classIRI: string | undefined,
+  limit = 3,
+): string {
+  const typeFilter = classIRI
+    ? `?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${escapeIRI(classIRI)} .`
+    : "";
+  const innerPattern = `
+    ${typeFilter}
+    ?entity ${escapeIRI(predicateIRI)} ?value .
+  `.trim();
+
+  return `
+    SELECT ?value (COUNT(DISTINCT ?entity) AS ?count)
+    WHERE {
+      ${graphScope(graphIRI, innerPattern)}
+    }
+    GROUP BY ?value
+    ORDER BY DESC(?count)
+    LIMIT ${limit}
+  `.trim();
+}
+
 // ── Relationships query ────────────────────────────────────────
 
 export function buildRelationshipsQuery(

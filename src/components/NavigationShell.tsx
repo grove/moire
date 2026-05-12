@@ -10,6 +10,7 @@ import { generateFacets } from "@/lib/facet-generator";
 // Navigation
 import { BackForwardControls } from "@/components/navigation/BackForwardControls";
 import { LensBreadcrumb } from "@/components/navigation/LensBreadcrumb";
+import { TraversalBreadcrumb } from "@/components/navigation/TraversalBreadcrumb";
 import { LayerSelector } from "@/components/navigation/LayerSelector";
 import { SearchPalette } from "@/components/navigation/SearchPalette";
 import { TypesBrowser } from "@/components/navigation/TypesBrowser";
@@ -80,9 +81,10 @@ export function NavigationShell() {
         </Tooltip>
       </header>
 
-      {/* Context header + breadcrumb */}
+      {/* Context header + breadcrumbs */}
       <div className="border-b px-4 py-2 space-y-1">
         <LensBreadcrumb />
+        <TraversalBreadcrumb />
       </div>
 
       {/* Main content area */}

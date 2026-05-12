@@ -53,20 +53,108 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **Traversal breadcrumb** _(new UI component)_
-- Shown below the context header on all navigations.
-- Format: `SE Researchers → affiliated with → Universities → located in → Cities`
-- Each chip shows: predicate role icon, predicate label, target type label.
-- Clicking any chip navigates back to that frame.
+- [x] Shown below the context header on all navigations.
+- [x] Format: `SE Researchers → affiliated with → Universities → located in → Cities`
+- [x] Each chip shows: predicate role icon, predicate label, target type label.
+- [x] Clicking any chip navigates back to that frame.
 
 **Hover tooltips** on predicate rows in the Relationships Browser and Jump strip
-- Show: role, cardinality hint, coverage percentage ("available on 94% of this set"), top 3 values with counts.
+- [x] Show: role, cardinality hint, coverage percentage ("available on 94% of this set"), top 3 values with counts.
 
-**Role icons** in Relationships Browser and Jump strip buttons.
+**Role icons** in Relationships Browser and Jump strip buttons. ✓
 
 ### Acceptance criteria
-- Breadcrumb appears on all navigation steps.
-- Tooltips render without layout shift.
-- Role icons are visually distinct and accessible.
+- [x] Breadcrumb appears on all navigation steps.
+- [x] Tooltips render without layout shift.
+- [x] Role icons are visually distinct and accessible.
+
+---
+
+## Test Infrastructure — Unit, Integration & E2E Reliability
+
+**Theme**: Test Coverage  
+**Goal**: Add a fast-feedback unit test layer for the pure library code, improve reliability of existing E2E tests, and add integration tests for server actions using a fake SPARQL server. Full plan in [plans/improved-test-coverage-1.md](plans/improved-test-coverage-1.md).
+
+> **What you'll notice** _(developer-facing only)_: `npm run test:unit` gives a sub-second pass/fail signal for the query-building and scoring logic. The E2E suite stops swallowing silent failures and its matchers are precise enough to catch copy-paste regressions.
+
+### v0.2.1 — Track 1: Unit tests for `src/lib/`
+
+**Setup**: install Vitest + `@vitest/coverage-v8`; add `vitest.config.ts` with `@` alias; add `test:unit` / `test:unit:coverage` scripts to `package.json`.
+
+**`src/lib/sparql.test.ts`**
+- [ ] `buildLayerQuery` throws for unsupported layer values
+- [ ] `buildLayerQuery` throws when `focusIRI` is not a valid IRI
+- [ ] `buildLayerQuery` omits `GRAPH` clause when `graphIRI` is null
+- [ ] `buildLayerQuery` wraps in `GRAPH` clause when `graphIRI` is provided
+- [ ] `buildLayerQuery` inserts `rdf:type` filter when facet dimension is `rdf:type`
+- [ ] `buildLayerQuery` skips non-IRI facet dimensions without throwing — regression test for the documented IRI validation bug
+- [ ] `buildLayerQuery` uses `STR()` comparison for literal facet values
+- [ ] `buildSetTraversalQuery` with `direction = "incoming"` reverses the triple pattern
+- [ ] `buildFacetCountQuery` produces a `GROUP BY` over `?value`
+- [ ] `buildSearchQuery` escapes double-quotes, backslashes, and newlines in the search term
+
+**`src/lib/facet-generator.test.ts`**
+- [ ] A predicate with `isStructural = true` is not returned as a facet candidate
+- [ ] `valueKind = "iri"` with `objectCount = 5` → `FacetDefinition` with `valueType = "uri"`
+- [ ] `valueKind = "date"` → `valueType = "date-range"`; `valueKind = "numeric"` → `"numeric-range"`
+- [ ] Predicates in `STRUCTURAL_PREDICATES` (e.g., `owl:sameAs`) receive `isStructural = true`
+- [ ] `computeCardinality`: ratio ≤ 1.1 → `"single"`, 1.2–1.5 → `"usually-single"`, 1.6–5.0 → `"multi"`, > 5 → `"highly-multi"`
+- [ ] A `"relational"` predicate scores higher than a `"structural"` one
+- [ ] Output list is ordered by descending usefulness score
+
+**`src/lib/context-header.test.ts`**
+- [ ] `context = "graphs"` returns `""`
+- [ ] `context = "types"` returns `"Types in <graph label>"`
+- [ ] `context = "entity"` returns label; falls back to `shortIRI` when label is undefined
+- [ ] `context = "set"` with no facets returns the pluralised class label
+- [ ] `context = "set"` with facets prepends facet phrases before the class label
+- [ ] `context = "set"` with `navigationPredicate` produces `"<pred> of <parent header>"`
+- [ ] `context = "relationships"` produces `"Relationships on <parent header>"`
+- [ ] Recursive two-deep traversal produces the correct composed string
+
+**`src/lib/vocabulary-registry.test.ts`**
+- [ ] `lookupPredicate` returns the correct entry for well-known IRIs (e.g., `rdfs:label`)
+- [ ] `lookupPredicate` returns undefined for unknown IRIs
+- [ ] No IRI appears twice in the registry
+
+### v0.2.2 — Track 2: Unit tests for `src/stores/`
+
+**`src/stores/navigation-store.test.ts`**
+- [ ] Initial state has one frame and `pointer = 0`
+- [ ] `push(frame)` appends to the stack and increments the pointer
+- [ ] `push(frame)` when pointer is mid-stack truncates forward history
+- [ ] `back()` decrements pointer; no-ops when pointer is 0
+- [ ] `forward()` increments pointer; no-ops when at end of stack
+- [ ] After `back(); push(newFrame)`, `forward()` does nothing
+
+**`src/stores/endpoint-store.test.ts`**
+- [ ] `setEndpoint(config)` stores config and marks `isConnected = true`
+- [ ] `clearEndpoint()` resets to initial disconnected state
+- [ ] `setLabelPredicate(iri)` updates the predicate without changing other fields
+
+### v0.2.3 — Track 3: E2E reliability fixes
+
+- [ ] Tighten `/\d+\s+entit/` to `/(entity|entities)/` in `05-entity-set.spec.ts`, `10-facets.spec.ts`, `07-navigation.spec.ts`
+- [ ] Add `data-testid` attributes to graph cards, class rows, entity cards, relationship rows, and facet groups
+- [ ] Replace `.animate-pulse` + `.catch(() => {})` waits with positive content-ready assertions using the new `data-testid` selectors
+- [ ] Annotate intentional search-palette skips with `test.info().annotations.push(...)` instead of silent returns
+- [ ] Deduplicate `test.setTimeout(180_000)` into a shared fixture override in `fixtures.ts`
+
+### v0.2.4 — Track 4: Integration tests for server actions
+
+- [ ] Create `e2e/sparql-mock-server.ts`: minimal in-process HTTP server that returns configurable SPARQL JSON responses
+- [ ] `setupEndpoint` returns capabilities and summaries for a valid SPARQL response
+- [ ] `setupEndpoint` throws `"Cannot reach endpoint: connection timed out."` on no response
+- [ ] `setupEndpoint` throws on HTTP 500
+- [ ] Introspection pipeline filters out predicates with non-IRI values — regression test for the documented bug
+- [ ] Default-graph endpoint represented as `graphIRI = null`
+- [ ] Facet count query rejects non-IRI facet dimensions before sending the query
+
+### Acceptance criteria
+- [ ] `npm run test:unit` passes; `src/lib/` line coverage ≥ 80%
+- [ ] All 12 existing E2E specs pass after reliability fixes
+- [ ] `data-testid` attributes in place on the five listed components
+- [ ] IRI validation regression test exists and passes against the mock server
 
 ---
 
@@ -365,6 +453,10 @@ First fully documented, publicly stable release. All annotation features from v0
 |---|---|---|
 | v0.1.0 | Predicate Foundation | Vocabulary registry, roles, cardinality, usefulness ordering |
 | v0.2.0 | Navigation Clarity | Traversal breadcrumbs, annotated tooltips |
+| v0.2.1 | Test Coverage | Vitest unit tests for `src/lib/` (sparql, facet-generator, context-header, vocabulary-registry) |
+| v0.2.2 | Test Coverage | Unit tests for `src/stores/` (navigation-store, endpoint-store) |
+| v0.2.3 | Test Coverage | E2E reliability fixes (matchers, data-testid, assertions, annotations) |
+| v0.2.4 | Test Coverage | Integration tests via mock SPARQL server |
 | v0.3.0 | Navigation Clarity | Natural context headers with inverse labels |
 | v0.4.0 | Metadata Harvest | Batched predicate metadata query (RDFS, SKOS, OWL) |
 | v0.5.0 | Metadata Harvest | Richer relationship browser rows, explanatory empty states |

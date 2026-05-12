@@ -23,6 +23,8 @@ interface NavigationStore {
   back: () => void;
   forward: () => void;
   setEndpoint: (endpointId: string) => void;
+  /** Jump directly to any entry in the navigation stack by index. */
+  navigateToFrame: (index: number) => void;
 }
 
 const initialFrame: LensFrame = {
@@ -213,6 +215,17 @@ export const useNavigationStore = create<NavigationStore>((set, get) => ({
       history.forward();
     } else {
       set((s) => ({ pointer: Math.min(s.stack.length - 1, s.pointer + 1) }));
+    }
+  },
+  navigateToFrame: (index) => {
+    const { pointer, stack } = get();
+    const target = Math.max(0, Math.min(index, stack.length - 1));
+    const delta = target - pointer;
+    if (delta === 0) return;
+    if (typeof window !== "undefined") {
+      history.go(delta);
+    } else {
+      set({ pointer: target });
     }
   },
 }));

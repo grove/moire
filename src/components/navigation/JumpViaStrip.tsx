@@ -5,6 +5,9 @@ import { useEndpointStore } from "@/stores/endpoint-store";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCount } from "@/lib/utils";
+import { RoleIcon } from "@/components/navigation/RoleIcon";
+import { PredicateTooltipContent } from "@/components/navigation/PredicateTooltip";
+import type { RelationshipInfo } from "@/app/actions/graph";
 
 const MAX_JUMP_BUTTONS = 5;
 
@@ -37,27 +40,45 @@ export function JumpViaStrip() {
           <p>Navigate to the set of entities connected via this relationship</p>
         </TooltipContent>
       </Tooltip>
-      {navPredicates.map((pred) => (
-        <Tooltip key={pred.iri}>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => traverseVia(pred.iri)}
-            >
-              {pred.label} ({formatCount(pred.objectCount)}→)
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Browse all entities linked via <span className="font-mono">{pred.label}</span></p>
-            {pred.vocabularyBadge && (
-              <p className="text-xs text-muted-foreground">{pred.vocabularyBadge}</p>
-            )}
-            <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{pred.iri}</p>
-          </TooltipContent>
-        </Tooltip>
-      ))}
+      {navPredicates.map((pred) => {
+        // Build a RelationshipInfo-compatible object from PredicateSummary
+        const rel: RelationshipInfo = {
+          predicate: pred.iri,
+          label: pred.label,
+          subjectCount: pred.subjectCount,
+          objectCount: pred.objectCount,
+          valueKind: pred.valueKind,
+          isNavigationCandidate: pred.isNavigationCandidate,
+          role: pred.role,
+          vocabularyBadge: pred.vocabularyBadge,
+          cardinality: pred.cardinality,
+          usefulness: pred.usefulness,
+        };
+        return (
+          <Tooltip key={pred.iri}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 gap-1"
+                onClick={() => traverseVia(pred.iri)}
+                aria-label={`Jump via ${pred.label}`}
+              >
+                <RoleIcon role={pred.role} />
+                {pred.label} ({formatCount(pred.objectCount)}→)
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="p-3">
+              <PredicateTooltipContent
+                rel={rel}
+                endpointId={frame.endpointId}
+                graphIRI={frame.graphIRI}
+                classIRI={frame.focusClass}
+              />
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
