@@ -138,6 +138,27 @@ export interface PredicateValue {
   valueIsIRI: boolean;
 }
 
+// ── Resource annotations (v0.6.0) ─────────────────────────────
+
+export interface ResourceAnnotation {
+  /** Alternative labels / aliases (skos:altLabel). */
+  aliases?: string[];
+  /** Best description: skos:definition → rdfs:comment → dcterms:abstract → schema:description. */
+  description?: string;
+  /** Type hierarchy from direct type up through rdfs:subClassOf. */
+  typeHierarchy?: Array<{ iri: string; label: string }>;
+  /** Detected date values. */
+  temporalInfo?: {
+    created?: string;
+    modified?: string;
+    generatedAt?: string;
+  };
+  /** Best source / provenance URL. */
+  sourceUrl?: string;
+  /** Media links (image, page, document). */
+  media?: Array<{ url: string; kind: "image" | "page" | "document" }>;
+}
+
 export interface SearchResult {
   iri: string;
   label: string;

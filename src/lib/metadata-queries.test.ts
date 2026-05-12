@@ -5,6 +5,8 @@ import {
   chunk,
   BATCH_SIZE,
   OWL_CHARACTERISTIC_LABELS,
+  buildResourceAnnotationQuery,
+  parseResourceAnnotation,
 } from "./metadata-queries";
 import type { PredicateSummary } from "./types";
 
@@ -290,5 +292,154 @@ describe("chunk", () => {
 
   it("returns chunks of exactly `size` items when array length is a multiple", () => {
     expect(chunk([1, 2, 3, 4], 2)).toEqual([[1, 2], [3, 4]]);
+  });
+});
+
+// ── buildResourceAnnotationQuery ──────────────────────────────
+
+describe("buildResourceAnnotationQuery", () => {
+  const VALID_IRI = "http://example.org/resource/42";
+
+  it("returns empty string for an invalid IRI", () => {
+    expect(buildResourceAnnotationQuery("not an IRI", null)).toBe("");
+    expect(buildResourceAnnotationQuery("", null)).toBe("");
+  });
+
+  it("returns a non-empty query for a valid IRI", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, null);
+    expect(q.length).toBeGreaterThan(0);
+  });
+
+  it("embeds the resource IRI in the query", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, null);
+    expect(q).toContain(`<${VALID_IRI}>`);
+  });
+
+  it("contains SELECT with key annotation variables", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, null);
+    expect(q).toContain("?altLabel");
+    expect(q).toContain("?definition");
+    expect(q).toContain("?source");
+    expect(q).toContain("?image");
+    expect(q).toContain("?created");
+    expect(q).toContain("?modified");
+  });
+
+  it("references skos:altLabel for aliases", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, null);
+    expect(q).toContain("skos:altLabel");
+  });
+
+  it("references prov:hadPrimarySource for provenance", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, null);
+    expect(q).toContain("prov:hadPrimarySource");
+  });
+
+  it("does not include a GRAPH clause (metadata lives outside data graph)", () => {
+    const q = buildResourceAnnotationQuery(VALID_IRI, "http://example.org/graph");
+    expect(q).not.toContain("GRAPH");
+  });
+});
+
+// ── parseResourceAnnotation ────────────────────────────────────
+
+describe("parseResourceAnnotation", () => {
+  it("returns empty object for empty bindings", () => {
+    const result = parseResourceAnnotation([]);
+    expect(result.aliases).toBeUndefined();
+    expect(result.description).toBeUndefined();
+    expect(result.temporalInfo).toBeUndefined();
+    expect(result.sourceUrl).toBeUndefined();
+    expect(result.media).toBeUndefined();
+  });
+
+  it("collects altLabel aliases into an array", () => {
+    const bindings = [
+      { altLabel: { type: "literal", value: "Alias A" } },
+      { altLabel: { type: "literal", value: "Alias B" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.aliases).toContain("Alias A");
+    expect(result.aliases).toContain("Alias B");
+    expect(result.aliases).toHaveLength(2);
+  });
+
+  it("de-duplicates altLabel values", () => {
+    const bindings = [
+      { altLabel: { type: "literal", value: "Same" } },
+      { altLabel: { type: "literal", value: "Same" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.aliases).toHaveLength(1);
+  });
+
+  it("picks the first definition and ignores subsequent rows (first-wins)", () => {
+    const bindings = [
+      { definition: { type: "literal", value: "First definition" } },
+      { definition: { type: "literal", value: "Second definition" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.description).toBe("First definition");
+  });
+
+  it("extracts source URL from provenance binding", () => {
+    const bindings = [
+      { source: { type: "uri", value: "http://example.org/source" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.sourceUrl).toBe("http://example.org/source");
+  });
+
+  it("collects image into media array with kind='image'", () => {
+    const bindings = [
+      { image: { type: "uri", value: "http://example.org/img.png" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.media).toHaveLength(1);
+    expect(result.media![0].kind).toBe("image");
+    expect(result.media![0].url).toBe("http://example.org/img.png");
+  });
+
+  it("collects page into media array with kind='page'", () => {
+    const bindings = [
+      { page: { type: "uri", value: "http://example.org/page" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.media).toHaveLength(1);
+    expect(result.media![0].kind).toBe("page");
+  });
+
+  it("de-duplicates media entries with the same URL", () => {
+    const url = "http://example.org/img.png";
+    const bindings = [
+      { image: { type: "uri", value: url } },
+      { image: { type: "uri", value: url } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.media).toHaveLength(1);
+  });
+
+  it("extracts created date", () => {
+    const bindings = [
+      { created: { type: "literal", value: "2023-05-12", datatype: "http://www.w3.org/2001/XMLSchema#date" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.temporalInfo?.created).toBe("2023-05-12");
+  });
+
+  it("extracts modified date", () => {
+    const bindings = [
+      { modified: { type: "literal", value: "2024-01-03" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.temporalInfo?.modified).toBe("2024-01-03");
+  });
+
+  it("leaves temporalInfo undefined when no date bindings present", () => {
+    const bindings = [
+      { altLabel: { type: "literal", value: "Alias" } },
+    ];
+    const result = parseResourceAnnotation(bindings);
+    expect(result.temporalInfo).toBeUndefined();
   });
 });
