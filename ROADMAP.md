@@ -231,15 +231,15 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **Relationships Browser rows** (builds on v0.4 metadata)
-- Show domain ("Usually describes: Researcher") and range ("Usually points to: Organization") as secondary text.
-- Inverse label badge for applicable predicates.
-- Coverage percentage on each row.
-- OWL characteristic badges (Functional, Symmetric, Transitive) in tooltip.
+- [x] Show domain ("Usually describes: Researcher") and range ("Usually points to: Organization") as secondary text.
+- [x] Inverse label badge for applicable predicates.
+- [x] Coverage percentage on each row.
+- [x] OWL characteristic badges (Functional, Symmetric, Transitive) in tooltip.
 
 **Empty states**
-- On zero-result traversal: check and report coverage ("Only 3 of 100 entities have this relationship").
-- On zero-result filter: diagnose facet overlap ("Active filters leave no matching records").
-- Suggest at least one recovery: "Try removing [filter]" or "Try a different path".
+- [x] On zero-result traversal: check and report coverage ("Only 3 of 100 entities have this relationship").
+- [x] On zero-result filter: diagnose facet overlap ("Active filters leave no matching records").
+- [x] Suggest at least one recovery: "Try removing [filter]" or "Try a different path".
 
 Example:
 ```
@@ -249,9 +249,9 @@ Try filtering researchers first, or follow a different path.
 ```
 
 ### Acceptance criteria
-- Relationships Browser rows render without layout thrashing.
-- Domain/range labels visible on row (or tooltip for space-constrained layouts).
-- Empty states name the relevant predicate and suggest one action.
+- [x] Relationships Browser rows render without layout thrashing.
+- [x] Domain/range labels visible on row (or tooltip for space-constrained layouts).
+- [x] Empty states name the relevant predicate and suggest one action.
 
 ---
 
