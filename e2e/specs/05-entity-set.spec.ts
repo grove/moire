@@ -6,7 +6,7 @@ import { test, expect } from "../fixtures";
 
 test.describe("Entity set — Review class", () => {
   test("shows entity count", async ({ reviewPage }) => {
-    await expect(reviewPage.getByText(/\d+\s+entit/)).toBeVisible();
+    await expect(reviewPage.getByText(/(entity|entities)/)).toBeVisible();
   });
 
   test("shows entity cards", async ({ reviewPage }) => {

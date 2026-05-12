@@ -209,7 +209,7 @@ function RelationshipRow({
   classIRI: string | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group">
+    <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group" data-testid="relationship-row">
       <div className="flex items-center gap-2 min-w-0">
         {/* Role icon — visually distinct, accessible */}
         <RoleIcon role={rel.role} />
