@@ -16,7 +16,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Learn what Moire is, connect your first knowledge graph, and get your bearings in the interface.
 
-    [:octicons-arrow-right-24: Getting Started](getting-started/index.md)
+    [Getting Started](getting-started/index.md)
 
 -   **Want a guided tour?**
 
@@ -24,7 +24,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Follow a step-by-step walkthrough of the interface using a real research knowledge graph. See every feature in action before you read a word of explanation.
 
-    [:octicons-arrow-right-24: UI Tour](tour/index.md)
+    [UI Tour](tour/index.md)
 
 -   **Want to understand the ideas?**
 
@@ -32,7 +32,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Read about entities, relationships, sets, lenses, and layers — the six concepts that make Moire tick. Each one is explained with an everyday analogy first, jargon second.
 
-    [:octicons-arrow-right-24: Concepts](concepts/index.md)
+    [Concepts](concepts/index.md)
 
 -   **Looking for how to do something?**
 
@@ -40,7 +40,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Practical, task-focused guides for every navigation mode: filtering with facets, following relationships across a set, exploring entity detail, searching, and more.
 
-    [:octicons-arrow-right-24: How-to guides](how-to/index.md)
+    [How-to guides](how-to/index.md)
 
 -   **Need a quick reference?**
 
@@ -48,7 +48,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Keyboard shortcuts, the glossary, facet count behaviour, empty states, and a full Relationships Browser reference.
 
-    [:octicons-arrow-right-24: Reference](reference/index.md)
+    [Reference](reference/index.md)
 
 -   **Want to go deeper?**
 
@@ -56,7 +56,7 @@ Moire lets you explore the structure and content of a knowledge graph the way yo
 
     Connecting different database types, unlocking advanced features with pg-ripple, multi-hop exploration strategies, and tips for large graphs.
 
-    [:octicons-arrow-right-24: Advanced](advanced/index.md)
+    [Advanced](advanced/index.md)
 
 </div>
 
