@@ -120,17 +120,17 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### v0.2.2 — Track 2: Unit tests for `src/stores/`
 
 **`src/stores/navigation-store.test.ts`**
-- [ ] Initial state has one frame and `pointer = 0`
-- [ ] `push(frame)` appends to the stack and increments the pointer
-- [ ] `push(frame)` when pointer is mid-stack truncates forward history
-- [ ] `back()` decrements pointer; no-ops when pointer is 0
-- [ ] `forward()` increments pointer; no-ops when at end of stack
-- [ ] After `back(); push(newFrame)`, `forward()` does nothing
+- [x] Initial state has one frame and `pointer = 0`
+- [x] `push(frame)` appends to the stack and increments the pointer
+- [x] `push(frame)` when pointer is mid-stack truncates forward history
+- [x] `back()` decrements pointer; no-ops when pointer is 0
+- [x] `forward()` increments pointer; no-ops when at end of stack
+- [x] After `back(); push(newFrame)`, `forward()` does nothing
 
 **`src/stores/endpoint-store.test.ts`**
-- [ ] `setEndpoint(config)` stores config and marks `isConnected = true`
-- [ ] `clearEndpoint()` resets to initial disconnected state
-- [ ] `setLabelPredicate(iri)` updates the predicate without changing other fields
+- [x] `setEndpoint(config)` stores config and marks `isConnected = true`
+- [x] `clearEndpoint()` resets to initial disconnected state
+- [x] `setLabelPredicate(iri)` updates the predicate without changing other fields
 
 ### v0.2.3 — Track 3: E2E reliability fixes
 
