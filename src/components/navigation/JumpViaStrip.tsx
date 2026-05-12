@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCount } from "@/lib/utils";
 
+const MAX_JUMP_BUTTONS = 5;
+
 export function JumpViaStrip() {
   const frame = useNavigationStore((s) => s.current());
   const traverseVia = useNavigationStore((s) => s.traverseVia);
@@ -17,9 +19,11 @@ export function JumpViaStrip() {
     (g) => g.iri === (frame.graphIRI ?? "default"),
   );
 
-  // Get all navigation-candidate predicates
-  const navPredicates = currentGraph?.predicates
-    .filter((p) => p.isNavigationCandidate) ?? [];
+  // Get all navigation-candidate predicates, sorted by usefulness descending
+  const navPredicates = (currentGraph?.predicates ?? [])
+    .filter((p) => p.isNavigationCandidate)
+    .sort((a, b) => (b.usefulness ?? 0) - (a.usefulness ?? 0))
+    .slice(0, MAX_JUMP_BUTTONS);
 
   if (navPredicates.length === 0) return null;
 
@@ -47,6 +51,9 @@ export function JumpViaStrip() {
           </TooltipTrigger>
           <TooltipContent>
             <p>Browse all entities linked via <span className="font-mono">{pred.label}</span></p>
+            {pred.vocabularyBadge && (
+              <p className="text-xs text-muted-foreground">{pred.vocabularyBadge}</p>
+            )}
             <p className="font-mono text-xs text-muted-foreground mt-1 break-all">{pred.iri}</p>
           </TooltipContent>
         </Tooltip>
@@ -69,3 +76,4 @@ export function JumpViaStrip() {
     </div>
   );
 }
+

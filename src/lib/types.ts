@@ -43,6 +43,12 @@ export interface GraphSummary {
   introspectedAt: Date;
 }
 
+export type PredicateCardinality =
+  | "single"
+  | "usually-single"
+  | "multi"
+  | "highly-multi";
+
 export interface PredicateSummary {
   iri: string;
   label: string;
@@ -52,6 +58,11 @@ export interface PredicateSummary {
   isFacetCandidate: boolean;
   isNavigationCandidate: boolean;
   isStructural: boolean;
+  // v0.1.0 annotations
+  role?: import("./vocabulary-registry").PredicateRole;
+  cardinality?: PredicateCardinality;
+  vocabularyBadge?: string;
+  usefulness?: number;
 }
 
 export interface ClassSummary {
@@ -89,6 +100,7 @@ export interface FacetDefinition {
   sparqlPredicate: string;
   valueType: "uri" | "literal" | "date-range" | "numeric-range";
   multiSelect: boolean;
+  role?: import("./vocabulary-registry").PredicateRole;
 }
 
 export interface FacetValue {
