@@ -1,0 +1,377 @@
+# Moire Roadmap
+
+Moire uses [semantic versioning](https://semver.org/). Minor versions (`v0.x.0`) introduce new user-facing features. Patch versions (`v0.x.y`) deliver bug fixes and small improvements within a feature set. A `v1.0.0` will mark the first stable, publicly documented release.
+
+The current theme is **Annotations**: making Moire explain predicates, resources, and datasets through layered metadata from standards (RDFS, OWL, SKOS, SHACL, PROV-O, VoID), graph introspection, and local overlays. Full design context is in [plans/annotations.md](plans/annotations.md).
+
+---
+
+## v0.1.0 — Predicate Roles & Smarter Ordering
+
+**Theme**: Predicate Foundation  
+**Goal**: Make predicates in the Relationships Browser, facet panel, and Jump strip feel like authored choices rather than raw graph plumbing. Uses data Moire already has — no additional network queries.
+
+> **What you'll notice**: The list of relationships you can follow is now organized into groups — "Explore", "Filter", "Describe", and so on — instead of one long unsorted list. The most useful paths appear at the top. Relationships that are mainly technical plumbing are moved to a collapsed section at the bottom so they stay out of the way.
+
+### Changes
+
+**`src/lib/vocabulary-registry.ts`** _(new file)_
+- Map 50+ common predicates from RDF/RDFS/OWL/SKOS/Dublin Core/FOAF/PROV/schema.org to semantic roles: `labelling`, `descriptive`, `classifying`, `relational`, `temporal`, `numeric`, `provenance`, `structural`, `media`.
+- Heuristic fallback for predicates not in the registry (by namespace and name pattern).
+
+**`src/lib/facet-generator.ts`** — extend `annotatePredicates`
+- Add `role: PredicateRole` to `PredicateSummary` (from registry, then heuristic).
+- Add `cardinality: "single" | "usually-single" | "multi" | "highly-multi"` (from `objectCount / subjectCount` ratio).
+- Add `vocabularyBadge?: string` (short namespace label: "SKOS", "PROV", etc.).
+- Add `usefulness: number` (0–100 score: boost relational/classifying roles, high coverage, meaningful cardinality; penalize structural, extremely sparse, or uniform-value predicates).
+
+**Relationships Browser**
+- Group predicates by role into sections: Explore, Filter, Describe, Source, Technical.
+- Show cardinality indicator and vocabulary badge on each row.
+
+**Jump strip**
+- Sort buttons by usefulness score (most useful first).
+- Limit to 3–5 buttons.
+
+**Facet panel**
+- Show classifying predicates first, relational second.
+
+### Acceptance criteria
+- All discovered predicates in test graphs receive role and cardinality.
+- Usefulness ordering is stable and sensible.
+- No performance regression on introspection.
+
+---
+
+## v0.2.0 — Breadcrumbs & Annotated Tooltips
+
+**Theme**: Navigation Clarity  
+**Goal**: Make exploration paths visible and reversible. Give users enough information to commit to a traversal before clicking.
+
+> **What you'll notice**: A breadcrumb trail appears below the heading showing every step you took to get here — for example, "SE Researchers → affiliated with → Universities → located in → Cities". You can click any step to jump straight back to it. Hovering over a relationship button now shows a small tooltip explaining what the relationship is, how many records use it, and the most common values.
+
+### Changes
+
+**Traversal breadcrumb** _(new UI component)_
+- Shown below the context header on all navigations.
+- Format: `SE Researchers → affiliated with → Universities → located in → Cities`
+- Each chip shows: predicate role icon, predicate label, target type label.
+- Clicking any chip navigates back to that frame.
+
+**Hover tooltips** on predicate rows in the Relationships Browser and Jump strip
+- Show: role, cardinality hint, coverage percentage ("available on 94% of this set"), top 3 values with counts.
+
+**Role icons** in Relationships Browser and Jump strip buttons.
+
+### Acceptance criteria
+- Breadcrumb appears on all navigation steps.
+- Tooltips render without layout shift.
+- Role icons are visually distinct and accessible.
+
+---
+
+## v0.3.0 — Natural Context Headers
+
+**Theme**: Navigation Clarity  
+**Goal**: Context headers should read like sentences, not assembled IRI fragments.
+
+> **What you'll notice**: The line at the top of the screen that describes where you are starts reading like plain English. Instead of something like "affiliatedWith of SE Researchers", it now says "Institutions for SE Researchers". The interface sounds like it understands the graph, not like it is quoting a database field name.
+
+### Changes
+
+**`src/lib/context-header.ts`** — label precedence and inverse support
+- Label order: overlay > SHACL shape name > SKOS prefLabel > RDFS label > vocabulary registry name > derived short IRI.
+- Compute soft inverse labels for common predicates (e.g., `affiliatedWith` incoming → "institutions").
+- Generate outgoing phrase: `[source set] [predicate label] [target type]` → "Researchers affiliated with universities".
+- Generate incoming phrase: `[predicate inverse label] of [source set]` → "Affiliations of researchers".
+
+**Before / after examples**:
+
+| Before | After |
+|---|---|
+| `affiliatedWith of SE Researchers` | `Institutions for SE Researchers` |
+| `locatedIn of Universities` | `Cities containing universities` |
+| `broader of Climate Concepts` | `Broader topics for Climate Concepts` |
+
+### Acceptance criteria
+- Common traversal paths in the test graph read naturally.
+- Headers stay under 100 characters.
+- Fallback to current behavior when no better label is available.
+
+---
+
+## v0.4.0 — Predicate Metadata from the Graph
+
+**Theme**: Metadata Harvest  
+**Goal**: Enrich predicate annotations by querying the graph itself during introspection. One batched SPARQL query collects labels, descriptions, domain/range, OWL inverses, and property characteristics for all discovered predicates.
+
+> **What you'll notice**: Moire now reads the descriptions that the graph's own authors wrote for each relationship. If a graph documents that "affiliated with" connects a person to an institution, that description shows up in tooltips. Relationship names become clearer because they come from the people who designed the data, not from guesswork. This happens automatically in the background when you connect.
+
+### Changes
+
+**`src/lib/metadata-queries.ts`** _(new file)_
+- Batched predicate metadata query: `rdfs:label`, `skos:prefLabel`, `rdfs:comment`, `skos:definition`, `rdfs:domain`, `rdfs:range`, `owl:inverseOf`, OWL property type (`FunctionalProperty`, `SymmetricProperty`, `TransitiveProperty`, etc.).
+- Executes once during graph introspection; cached with graph summary.
+- Query spec: [plans/annotations.md § 10.1](plans/annotations.md#101-predicate-metadata-query).
+- Graceful fallback to v0.1 heuristics if query fails or times out.
+
+**`PredicateSummary` type** — new optional fields
+- `rdfsLabel?: string`
+- `skosDefinition?: string`
+- `inverseIRI?: string; inverseLabel?: string`
+- `domain?: string; domainLabel?: string`
+- `range?: string; rangeLabel?: string`
+- `owlCharacteristics?: string[]`
+
+**Context header** (builds on v0.3)
+- Now uses `inverseLabel` from graph metadata, not only registry.
+
+### Acceptance criteria
+- Metadata query executes in < 2s on test graphs.
+- Results survive page reload (cached in graph summary).
+- Label precedence observable in debug output.
+
+---
+
+## v0.5.0 — Richer Relationship Browser & Explanatory Empty States
+
+**Theme**: Metadata Harvest  
+**Goal**: Relationship browser rows convey enough to make traversal decisions confidently. Empty states explain what happened and suggest a recovery path.
+
+> **What you'll notice**: Each relationship in the browser now shows what kind of thing it usually connects to — for example, "Usually describes: Researcher" and "Usually points to: Organization". When a search or traversal finds nothing, the screen no longer just says "No results". Instead it tells you why — such as "Only 3 of 100 records in this set have this relationship" — and suggests a way out.
+
+### Changes
+
+**Relationships Browser rows** (builds on v0.4 metadata)
+- Show domain ("Usually describes: Researcher") and range ("Usually points to: Organization") as secondary text.
+- Inverse label badge for applicable predicates.
+- Coverage percentage on each row.
+- OWL characteristic badges (Functional, Symmetric, Transitive) in tooltip.
+
+**Empty states**
+- On zero-result traversal: check and report coverage ("Only 3 of 100 entities have this relationship").
+- On zero-result filter: diagnose facet overlap ("Active filters leave no matching records").
+- Suggest at least one recovery: "Try removing [filter]" or "Try a different path".
+
+Example:
+```
+No cities found.
+"locatedIn" is used by 3 of 100 researchers in this set.
+Try filtering researchers first, or follow a different path.
+```
+
+### Acceptance criteria
+- Relationships Browser rows render without layout thrashing.
+- Domain/range labels visible on row (or tooltip for space-constrained layouts).
+- Empty states name the relevant predicate and suggest one action.
+
+---
+
+## v0.6.0 — Rich Entity Detail Annotations
+
+**Theme**: Rich Annotations  
+**Goal**: Entity detail becomes a richer surface: type hierarchy, temporal summary, provenance, media, and aliases load on demand without blocking primary render.
+
+> **What you'll notice**: When you open an individual entity, its page fills in with more context. You might see where the record came from (a source link or attribution), when it was created or last updated, other names it is known by, and images or document links when the data includes them. The type badge now shows the full family tree of the type — for example, "Professor → Researcher → Person → Agent" — so you understand what kind of thing it is at a glance.
+
+### Changes
+
+**On-demand resource annotation query** (runs when entity detail opens)
+- Fetches: preferred labels, aliases (`skos:altLabel`), descriptions, type hierarchy, dates, source/provenance links, media (image, page, document), SHACL result stubs.
+- Query spec: [plans/annotations.md § 10.3](plans/annotations.md#103-resource-annotation-query).
+- Results fill in progressively after initial entity render.
+
+**Entity detail — new sections**
+- **Type hierarchy**: "Professor < Researcher < Person < Agent" as a breadcrumb chain.
+- **Also known as**: compact alias line (collapsed if > 3).
+- **Temporal**: "Created 2023-05-12, modified 2024-01-03" from any detected date predicate.
+- **Source / Provenance**: best external link hoisted to header; expandable chain below.
+- **Media**: thumbnails, external pages, document links in a grouped section.
+
+**Entity detail — predicate table**
+- Group predicates by role (using v0.1 roles).
+- Apply SHACL shape ordering (`sh:order`) when available.
+
+### Acceptance criteria
+- Entity detail first paint is not blocked by annotation query.
+- Temporal and provenance sections appear when data exists, absent otherwise.
+- No performance regression on entity navigation.
+
+---
+
+## v0.7.0 — SHACL Data Quality
+
+**Theme**: Rich Annotations  
+**Goal**: When a graph publishes SHACL shapes, surface data quality warnings quietly on entity cards and entity detail.
+
+> **What you'll notice**: If the graph's owners have defined rules about what complete records should look like, Moire will quietly flag records that don't meet those rules. A small warning badge appears on cards with known issues, and the entity detail page shows a plain-English explanation — for example, "This record is missing an expected publication date." This only appears when the graph provides that kind of quality information.
+
+### Changes
+
+**`src/lib/metadata-queries.ts`** — SHACL shape query
+- On-demand query when a type view or entity detail opens for a known type.
+- Collects `sh:name`, `sh:description`, `sh:order`, `sh:group`, `sh:datatype`, `sh:class`, `sh:minCount`, `sh:maxCount` for the target class.
+- Cached by class IRI.
+- Query spec: [plans/annotations.md § 10.2](plans/annotations.md#102-shacl-shape-metadata-query).
+
+**Entity cards** — small warning badge on SHACL violations.
+
+**Entity detail** — SHACL results panel (quiet, collapsible)
+- Shows violation message, severity (Info / Warning / Violation), affected predicate.
+- Empty state improvements: "Expected one publication date, but none found" when shape data supports it.
+
+**`PredicateSummary`** — SHACL-sourced `sh:name` and `sh:description` added to label precedence.
+
+### Acceptance criteria
+- Shape query degrades gracefully on graphs without SHACL.
+- Badge appears only on entities with actual violations.
+- Panel is visually distinct from primary entity content.
+
+---
+
+## v0.8.0 — VoID Dataset Metadata
+
+**Theme**: Rich Annotations  
+**Goal**: Graph Browser cards and screen overviews show human-readable dataset information when VoID metadata is available, instead of only raw graph IRIs.
+
+> **What you'll notice**: The screen where you choose a graph to explore now shows real descriptions — the dataset's title, who published it, when it was last updated, and what kind of information it contains — instead of just a raw web address. When the graph suggests good starting points, Moire can offer them to you directly.
+
+### Changes
+
+**`src/lib/metadata-queries.ts`** — VoID dataset query
+- Runs opportunistically during graph introspection (does not block).
+- Collects: `dcterms:title`, `dcterms:description`, `dcterms:publisher`, `dcterms:license`, `dcterms:modified`, `void:vocabulary`, `void:rootResource`, `void:exampleResource`, triple/entity/class/property counts.
+- Query spec: [plans/annotations.md § 10.4](plans/annotations.md#104-void-dataset-metadata-query).
+
+**Graph Browser cards**
+- Show dataset title and description instead of raw graph IRI when available.
+- Show publisher, license, modified date as secondary metadata.
+- Show vocabulary badges (Dublin Core, FOAF, SKOS, etc.).
+
+**Screen overview**
+- "Suggested starting points" from `void:rootResource` / `void:exampleResource`.
+- "Uses these vocabularies" strip when known.
+
+### Acceptance criteria
+- Cards show human-readable metadata on test graphs with VoID.
+- Graceful fallback to current introspection data when VoID absent.
+- No performance penalty when VoID query returns nothing.
+
+---
+
+## v0.9.0 — pg-ripple Enhanced Features
+
+**Theme**: Rich Annotations  
+**Goal**: When connected to a pg-ripple endpoint, unlock full-text search, semantic similarity, and richer SHACL data quality integration.
+
+> **What you'll notice** _(pg-ripple graphs only)_: Search (⌘K) now finds things based on the full text of descriptions and notes, not just the name. On an entity detail page, a "Semantically similar entities" section may appear — a ranked list of records that are about similar things, even if they are not directly connected in the graph.
+
+### Changes
+
+- Full-text search (`pg:fts()`) in search palette, replacing label-only matching.
+- "Semantically similar entities" section in entity detail (when similarity index built).
+- Richer SHACL data quality as a first-class panel (pg-ripple provides pre-computed results).
+
+All features activate automatically on pg-ripple detection; no user configuration required.
+
+### Acceptance criteria
+- Features appear only on pg-ripple endpoints.
+- Standard SPARQL endpoints unaffected.
+- No increase in query latency on non-pg-ripple endpoints.
+
+---
+
+## v0.10.0 — Local Annotation Overlays
+
+**Theme**: Local Overlays  
+**Goal**: Endpoint owners can customize annotations for private, sparse, or opaque graphs without modifying source RDF.
+
+> **What you'll notice**: If you connect to a private or internal knowledge graph that uses cryptic relationship names, the administrator can now supply a small configuration file that gives those relationships clear, plain-language labels — without touching the underlying data. You can also switch to a "technical view" at any time to see the original names.
+
+### Changes
+
+**`src/lib/overlay-loader.ts`** _(new file)_
+- Load and validate a JSON overlay file configured per endpoint in the Endpoint Manager.
+- Schema covers: predicate label, inverse label, description, role, group, hidden flag, icon, priority; resource label, description, icon, aliases.
+- Validation runs before apply; invalid files fail with clear error messages.
+- Overlays merge as the final annotation pass (highest precedence).
+
+Example overlay:
+```json
+{
+  "version": 1,
+  "predicates": {
+    "http://example.org/research/legacyId": {
+      "label": "Legacy Record ID",
+      "description": "Internal identifier from the pre-migration system.",
+      "role": "structural",
+      "hidden": true
+    }
+  }
+}
+```
+
+**"Show technical view" toggle**
+- Reveals hidden predicates and raw IRIs alongside overlay-curated labels.
+- Overlay-sourced annotations marked internally (visible in technical view).
+
+**Endpoint Manager** — overlay URL field per endpoint.
+
+### Acceptance criteria
+- Overlay overrides display without affecting underlying graph data.
+- Technical view restores access to all hidden predicates.
+- Invalid overlay files fail clearly at load time.
+
+---
+
+## v0.11.0 — Overlay Documentation & Examples
+
+**Theme**: Local Overlays  
+**Goal**: Endpoint owners can self-serve overlay creation from documentation and working templates.
+
+> **What you'll notice**: If you manage a knowledge graph and want to set up an overlay, step-by-step documentation and ready-to-use templates are now available. No prior experience with the overlay format is needed to get started.
+
+### Changes
+
+- Overlay schema reference in developer docs.
+- Three example overlay files: "Hide structural predicates", "Rename internal IDs", "Add descriptions for sparse graphs".
+- User-facing docs updated: predicate roles, data quality indicators, provenance, overlay configuration.
+
+---
+
+## v1.0.0 — Stable Release
+
+First fully documented, publicly stable release. All annotation features from v0.1–v0.11 are complete, tested across bare SPARQL / SKOS-rich / SHACL-validated / pg-ripple profiles, and documented for end users and developers.
+
+> **What you'll notice**: Moire is ready for broad use. Every part of the interface has been tested against a range of real knowledge graphs, from bare-bones endpoints to richly annotated ones. The documentation covers everything from first connection to advanced customization.
+
+---
+
+## Risk Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Metadata queries become expensive | v0.4 uses one batched query; v0.6–v0.8 load on demand and cache aggressively |
+| Overlay misuse obscures data | Raw IRIs always accessible via technical view; overlay-sourced annotations marked internally |
+| Language handling complexity | Centralize label selection logic; add language preference to settings |
+| Too much UI noise | Progressive disclosure: best label + one hint visible; details in tooltips and panels |
+| Performance degradation | Measure each release's impact; skip annotation queries on unresponsive endpoints |
+
+---
+
+## Version Summary
+
+| Version | Theme | Key deliverable |
+|---|---|---|
+| v0.1.0 | Predicate Foundation | Vocabulary registry, roles, cardinality, usefulness ordering |
+| v0.2.0 | Navigation Clarity | Traversal breadcrumbs, annotated tooltips |
+| v0.3.0 | Navigation Clarity | Natural context headers with inverse labels |
+| v0.4.0 | Metadata Harvest | Batched predicate metadata query (RDFS, SKOS, OWL) |
+| v0.5.0 | Metadata Harvest | Richer relationship browser rows, explanatory empty states |
+| v0.6.0 | Rich Annotations | Entity detail: type hierarchy, aliases, temporal, provenance, media |
+| v0.7.0 | Rich Annotations | SHACL data quality warnings on cards and entity detail |
+| v0.8.0 | Rich Annotations | VoID dataset metadata on graph browser cards |
+| v0.9.0 | Rich Annotations | pg-ripple: full-text search, semantic similarity |
+| v0.10.0 | Local Overlays | Overlay schema, loader, technical view toggle |
+| v0.11.0 | Local Overlays | Overlay documentation and example templates |
+| v1.0.0 | Stable Release | Fully documented, tested across all endpoint profiles |
