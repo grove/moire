@@ -30,3 +30,13 @@ ci: check lint build
 # Clean build artifacts
 clean:
     rm -rf .next node_modules/.cache
+
+# Serve documentation locally (auto-reloads on changes)
+docs:
+    pip install -r requirements-docs.txt
+    mkdocs serve
+
+# Build documentation for production
+docs-build:
+    pip install -r requirements-docs.txt
+    mkdocs build
