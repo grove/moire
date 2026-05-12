@@ -226,3 +226,112 @@ export function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 export { BATCH_SIZE };
+
+// ── v0.6.0 — Resource annotation query ───────────────────────────────────────
+
+import type { ResourceAnnotation } from "./types";
+
+/**
+ * Build a SPARQL SELECT query that fetches on-demand annotations for a single
+ * resource IRI:
+ *  - skos:altLabel  (aliases)
+ *  - descriptions   (definition / comment / abstract / schema:description)
+ *  - provenance     (dcterms:source / prov:hadPrimarySource / prov:wasDerivedFrom)
+ *  - pages          (foaf:page / schema:url)
+ *  - images         (schema:image / foaf:depiction)
+ *  - dates          (dcterms:created / dcterms:modified / prov:generatedAtTime)
+ *
+ * Intentionally queries the default graph (no GRAPH clause) because schema/ontology
+ * metadata often lives outside the named data graph.
+ *
+ * Returns "" for invalid IRIs.
+ */
+export function buildResourceAnnotationQuery(
+  resourceIRI: string,
+  _graphIRI: string | null,
+): string {
+  if (!isValidIRI(resourceIRI)) return "";
+
+  return `
+PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos:   <http://www.w3.org/2004/02/skos/core#>
+PREFIX dcterms:<http://purl.org/dc/terms/>
+PREFIX schema: <https://schema.org/>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX prov:   <http://www.w3.org/ns/prov#>
+
+SELECT DISTINCT ?altLabel ?definition ?source ?page ?image
+                ?created ?modified ?generatedAt
+WHERE {
+  OPTIONAL { <${resourceIRI}> skos:altLabel ?altLabel }
+  OPTIONAL {
+    { <${resourceIRI}> skos:definition ?definition }
+    UNION { <${resourceIRI}> rdfs:comment ?definition }
+    UNION { <${resourceIRI}> dcterms:abstract ?definition }
+    UNION { <${resourceIRI}> schema:description ?definition }
+  }
+  OPTIONAL {
+    { <${resourceIRI}> dcterms:source ?source }
+    UNION { <${resourceIRI}> prov:hadPrimarySource ?source }
+    UNION { <${resourceIRI}> prov:wasDerivedFrom ?source }
+  }
+  OPTIONAL {
+    { <${resourceIRI}> foaf:page ?page }
+    UNION { <${resourceIRI}> schema:url ?page }
+  }
+  OPTIONAL {
+    { <${resourceIRI}> schema:image ?image }
+    UNION { <${resourceIRI}> foaf:depiction ?image }
+  }
+  OPTIONAL { <${resourceIRI}> dcterms:created ?created }
+  OPTIONAL { <${resourceIRI}> dcterms:modified ?modified }
+  OPTIONAL { <${resourceIRI}> prov:generatedAtTime ?generatedAt }
+}
+`.trim();
+}
+
+/**
+ * Parse SPARQL bindings from a resource annotation query into a
+ * {@link ResourceAnnotation} object.
+ *
+ * Multiple rows are expected when the resource has several altLabels or media
+ * items — all scalar fields use "first wins" semantics.
+ */
+export function parseResourceAnnotation(bindings: MetadataBinding[]): ResourceAnnotation {
+  const aliases = new Set<string>();
+  let description: string | undefined;
+  let sourceUrl: string | undefined;
+  const media: NonNullable<ResourceAnnotation["media"]> = [];
+  const temporalInfo: NonNullable<ResourceAnnotation["temporalInfo"]> = {};
+
+  for (const row of bindings) {
+    if (row.altLabel?.value) aliases.add(row.altLabel.value);
+    if (row.definition?.value && !description) description = row.definition.value;
+    if (row.source?.value && !sourceUrl) sourceUrl = row.source.value;
+
+    if (row.page?.value) {
+      const url = row.page.value;
+      if (!media.some((m) => m.url === url)) media.push({ url, kind: "page" });
+    }
+    if (row.image?.value) {
+      const url = row.image.value;
+      if (!media.some((m) => m.url === url)) media.push({ url, kind: "image" });
+    }
+
+    if (row.created?.value && !temporalInfo.created) temporalInfo.created = row.created.value;
+    if (row.modified?.value && !temporalInfo.modified) temporalInfo.modified = row.modified.value;
+    if (row.generatedAt?.value && !temporalInfo.generatedAt)
+      temporalInfo.generatedAt = row.generatedAt.value;
+  }
+
+  const hasTemporalInfo = Object.keys(temporalInfo).length > 0;
+
+  return {
+    aliases: aliases.size > 0 ? Array.from(aliases) : undefined,
+    description,
+    sourceUrl,
+    media: media.length > 0 ? media : undefined,
+    temporalInfo: hasTemporalInfo ? temporalInfo : undefined,
+  };
+}

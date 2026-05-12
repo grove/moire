@@ -265,25 +265,25 @@ Try filtering researchers first, or follow a different path.
 ### Changes
 
 **On-demand resource annotation query** (runs when entity detail opens)
-- Fetches: preferred labels, aliases (`skos:altLabel`), descriptions, type hierarchy, dates, source/provenance links, media (image, page, document), SHACL result stubs.
-- Query spec: [plans/annotations.md § 10.3](plans/annotations.md#103-resource-annotation-query).
-- Results fill in progressively after initial entity render.
+- [x] Fetches: preferred labels, aliases (`skos:altLabel`), descriptions, type hierarchy, dates, source/provenance links, media (image, page, document), SHACL result stubs.
+- [x] Query spec: [plans/annotations.md § 10.3](plans/annotations.md#103-resource-annotation-query).
+- [x] Results fill in progressively after initial entity render.
 
 **Entity detail — new sections**
-- **Type hierarchy**: "Professor < Researcher < Person < Agent" as a breadcrumb chain.
-- **Also known as**: compact alias line (collapsed if > 3).
-- **Temporal**: "Created 2023-05-12, modified 2024-01-03" from any detected date predicate.
-- **Source / Provenance**: best external link hoisted to header; expandable chain below.
-- **Media**: thumbnails, external pages, document links in a grouped section.
+- [x] **Type hierarchy**: "Professor < Researcher < Person < Agent" as a breadcrumb chain.
+- [x] **Also known as**: compact alias line (collapsed if > 3).
+- [x] **Temporal**: "Created 2023-05-12, modified 2024-01-03" from any detected date predicate.
+- [x] **Source / Provenance**: best external link hoisted to header; expandable chain below.
+- [x] **Media**: thumbnails, external pages, document links in a grouped section.
 
 **Entity detail — predicate table**
-- Group predicates by role (using v0.1 roles).
-- Apply SHACL shape ordering (`sh:order`) when available.
+- [x] Group predicates by role (using v0.1 roles).
+- [x] Apply SHACL shape ordering (`sh:order`) when available.
 
 ### Acceptance criteria
-- Entity detail first paint is not blocked by annotation query.
-- Temporal and provenance sections appear when data exists, absent otherwise.
-- No performance regression on entity navigation.
+- [x] Entity detail first paint is not blocked by annotation query.
+- [x] Temporal and provenance sections appear when data exists, absent otherwise.
+- [x] No performance regression on entity navigation.
 
 ---
 

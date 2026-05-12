@@ -34,6 +34,8 @@ import {
   chunk,
   BATCH_SIZE,
   type MetadataBinding,
+  buildResourceAnnotationQuery,
+  parseResourceAnnotation,
 } from "@/lib/metadata-queries";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
@@ -656,4 +658,31 @@ export async function fetchPredicateTopValues(
     value: b.value?.value ?? "",
     count: parseInt(b.count?.value ?? "0", 10),
   }));
+}
+
+// ── v0.6.0 — Resource annotations ─────────────────────────────
+
+import type { ResourceAnnotation } from "@/lib/types";
+
+/**
+ * Fetch on-demand annotations for a single entity resource.
+ *
+ * Runs after the entity detail initial paint (non-blocking).
+ * Gracefully returns an empty object on error.
+ */
+export async function fetchResourceAnnotations(
+  endpointUrl: string,
+  resourceIRI: string,
+  graphIRI: string | null,
+  auth?: EndpointConfig["auth"],
+): Promise<ResourceAnnotation> {
+  try {
+    const query = buildResourceAnnotationQuery(resourceIRI, graphIRI);
+    if (!query) return {};
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return parseResourceAnnotation(bindings as MetadataBinding[]);
+  } catch (err) {
+    console.warn("[v0.6.0] Resource annotation query failed:", err);
+    return {};
+  }
 }
