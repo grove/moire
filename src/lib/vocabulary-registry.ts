@@ -22,6 +22,13 @@ export interface RegistryEntry {
   badge?: string;
   /** Human-readable name override (takes precedence over shortIRI). */
   name?: string;
+  /**
+   * Soft inverse label — describes the set of resources you arrive at when
+   * navigating via this predicate from a source set.  Used by the context
+   * header to produce natural-language traversal descriptions such as
+   * "Broader concepts for Climate Topics" instead of "broader of Climate Topics".
+   */
+  inverseLabel?: string;
 }
 
 // ── Registry ──────────────────────────────────────────────────
@@ -34,13 +41,13 @@ const REGISTRY: Record<string, RegistryEntry> = {
   // ── RDFS ──────────────────────────────────────────────────
   "http://www.w3.org/2000/01/rdf-schema#label":                   { role: "labelling",    badge: "RDFS", name: "label" },
   "http://www.w3.org/2000/01/rdf-schema#comment":                 { role: "descriptive",  badge: "RDFS", name: "comment" },
-  "http://www.w3.org/2000/01/rdf-schema#subClassOf":              { role: "classifying",  badge: "RDFS", name: "subClassOf" },
+  "http://www.w3.org/2000/01/rdf-schema#subClassOf":              { role: "classifying",  badge: "RDFS", name: "subClassOf",   inverseLabel: "Superclasses" },
   "http://www.w3.org/2000/01/rdf-schema#subPropertyOf":           { role: "structural",   badge: "RDFS", name: "subPropertyOf" },
   "http://www.w3.org/2000/01/rdf-schema#domain":                  { role: "structural",   badge: "RDFS", name: "domain" },
   "http://www.w3.org/2000/01/rdf-schema#range":                   { role: "structural",   badge: "RDFS", name: "range" },
   "http://www.w3.org/2000/01/rdf-schema#isDefinedBy":             { role: "structural",   badge: "RDFS", name: "isDefinedBy" },
   "http://www.w3.org/2000/01/rdf-schema#seeAlso":                 { role: "structural",   badge: "RDFS", name: "seeAlso" },
-  "http://www.w3.org/2000/01/rdf-schema#member":                  { role: "relational",   badge: "RDFS", name: "member" },
+  "http://www.w3.org/2000/01/rdf-schema#member":                  { role: "relational",   badge: "RDFS", name: "member",       inverseLabel: "Members" },
 
   // ── OWL ───────────────────────────────────────────────────
   "http://www.w3.org/2002/07/owl#sameAs":                         { role: "structural", badge: "OWL", name: "sameAs" },
@@ -58,17 +65,17 @@ const REGISTRY: Record<string, RegistryEntry> = {
   "http://www.w3.org/2004/02/skos/core#example":                  { role: "descriptive", badge: "SKOS", name: "example" },
   "http://www.w3.org/2004/02/skos/core#note":                     { role: "descriptive", badge: "SKOS", name: "note" },
   "http://www.w3.org/2004/02/skos/core#notation":                 { role: "labelling",   badge: "SKOS", name: "notation" },
-  "http://www.w3.org/2004/02/skos/core#broader":                  { role: "classifying", badge: "SKOS", name: "broader" },
-  "http://www.w3.org/2004/02/skos/core#narrower":                 { role: "classifying", badge: "SKOS", name: "narrower" },
-  "http://www.w3.org/2004/02/skos/core#related":                  { role: "relational",  badge: "SKOS", name: "related" },
-  "http://www.w3.org/2004/02/skos/core#inScheme":                 { role: "classifying", badge: "SKOS", name: "inScheme" },
-  "http://www.w3.org/2004/02/skos/core#hasTopConcept":            { role: "classifying", badge: "SKOS", name: "hasTopConcept" },
+  "http://www.w3.org/2004/02/skos/core#broader":                  { role: "classifying", badge: "SKOS", name: "broader",       inverseLabel: "Broader concepts" },
+  "http://www.w3.org/2004/02/skos/core#narrower":                 { role: "classifying", badge: "SKOS", name: "narrower",      inverseLabel: "Narrower concepts" },
+  "http://www.w3.org/2004/02/skos/core#related":                  { role: "relational",  badge: "SKOS", name: "related",       inverseLabel: "Related concepts" },
+  "http://www.w3.org/2004/02/skos/core#inScheme":                 { role: "classifying", badge: "SKOS", name: "inScheme",      inverseLabel: "Concept schemes" },
+  "http://www.w3.org/2004/02/skos/core#hasTopConcept":            { role: "classifying", badge: "SKOS", name: "hasTopConcept", inverseLabel: "Top concepts" },
   "http://www.w3.org/2004/02/skos/core#topConceptOf":             { role: "classifying", badge: "SKOS", name: "topConceptOf" },
   "http://www.w3.org/2004/02/skos/core#exactMatch":               { role: "structural",  badge: "SKOS", name: "exactMatch" },
   "http://www.w3.org/2004/02/skos/core#closeMatch":               { role: "structural",  badge: "SKOS", name: "closeMatch" },
-  "http://www.w3.org/2004/02/skos/core#broadMatch":               { role: "structural",  badge: "SKOS", name: "broadMatch" },
-  "http://www.w3.org/2004/02/skos/core#narrowMatch":              { role: "structural",  badge: "SKOS", name: "narrowMatch" },
-  "http://www.w3.org/2004/02/skos/core#relatedMatch":             { role: "structural",  badge: "SKOS", name: "relatedMatch" },
+  "http://www.w3.org/2004/02/skos/core#broadMatch":               { role: "structural",  badge: "SKOS", name: "broadMatch",    inverseLabel: "Broad matches" },
+  "http://www.w3.org/2004/02/skos/core#narrowMatch":              { role: "structural",  badge: "SKOS", name: "narrowMatch",   inverseLabel: "Narrow matches" },
+  "http://www.w3.org/2004/02/skos/core#relatedMatch":             { role: "structural",  badge: "SKOS", name: "relatedMatch",  inverseLabel: "Related matches" },
 
   // ── Dublin Core (elements) ─────────────────────────────────
   "http://purl.org/dc/elements/1.1/title":                        { role: "labelling",   badge: "DC", name: "title" },
@@ -104,11 +111,11 @@ const REGISTRY: Record<string, RegistryEntry> = {
   "http://purl.org/dc/terms/source":                              { role: "provenance",  badge: "DCT", name: "source" },
   "http://purl.org/dc/terms/rights":                              { role: "provenance",  badge: "DCT", name: "rights" },
   "http://purl.org/dc/terms/license":                             { role: "provenance",  badge: "DCT", name: "license" },
-  "http://purl.org/dc/terms/isPartOf":                            { role: "relational",  badge: "DCT", name: "isPartOf" },
-  "http://purl.org/dc/terms/hasPart":                             { role: "relational",  badge: "DCT", name: "hasPart" },
-  "http://purl.org/dc/terms/isVersionOf":                         { role: "relational",  badge: "DCT", name: "isVersionOf" },
-  "http://purl.org/dc/terms/relation":                            { role: "relational",  badge: "DCT", name: "relation" },
-  "http://purl.org/dc/terms/references":                          { role: "relational",  badge: "DCT", name: "references" },
+  "http://purl.org/dc/terms/isPartOf":                            { role: "relational",  badge: "DCT", name: "isPartOf",    inverseLabel: "Parent resources" },
+  "http://purl.org/dc/terms/hasPart":                             { role: "relational",  badge: "DCT", name: "hasPart",     inverseLabel: "Parts" },
+  "http://purl.org/dc/terms/isVersionOf":                         { role: "relational",  badge: "DCT", name: "isVersionOf", inverseLabel: "Source versions" },
+  "http://purl.org/dc/terms/relation":                            { role: "relational",  badge: "DCT", name: "relation",    inverseLabel: "Related resources" },
+  "http://purl.org/dc/terms/references":                          { role: "relational",  badge: "DCT", name: "references",  inverseLabel: "Referenced resources" },
 
   // ── FOAF ──────────────────────────────────────────────────
   "http://xmlns.com/foaf/0.1/name":                               { role: "labelling",   badge: "FOAF", name: "name" },
@@ -120,19 +127,19 @@ const REGISTRY: Record<string, RegistryEntry> = {
   "http://xmlns.com/foaf/0.1/homepage":                           { role: "media",       badge: "FOAF", name: "homepage" },
   "http://xmlns.com/foaf/0.1/depiction":                          { role: "media",       badge: "FOAF", name: "depiction" },
   "http://xmlns.com/foaf/0.1/img":                                { role: "media",       badge: "FOAF", name: "img" },
-  "http://xmlns.com/foaf/0.1/knows":                              { role: "relational",  badge: "FOAF", name: "knows" },
-  "http://xmlns.com/foaf/0.1/member":                             { role: "relational",  badge: "FOAF", name: "member" },
-  "http://xmlns.com/foaf/0.1/primaryTopic":                       { role: "relational",  badge: "FOAF", name: "primaryTopic" },
-  "http://xmlns.com/foaf/0.1/based_near":                         { role: "relational",  badge: "FOAF", name: "based_near" },
+  "http://xmlns.com/foaf/0.1/knows":                              { role: "relational",  badge: "FOAF", name: "knows",         inverseLabel: "Known people" },
+  "http://xmlns.com/foaf/0.1/member":                             { role: "relational",  badge: "FOAF", name: "member",        inverseLabel: "Members" },
+  "http://xmlns.com/foaf/0.1/primaryTopic":                       { role: "relational",  badge: "FOAF", name: "primaryTopic",  inverseLabel: "Primary topics" },
+  "http://xmlns.com/foaf/0.1/based_near":                         { role: "relational",  badge: "FOAF", name: "based_near",    inverseLabel: "Nearby locations" },
   "http://xmlns.com/foaf/0.1/maker":                              { role: "provenance",  badge: "FOAF", name: "maker" },
   "http://xmlns.com/foaf/0.1/made":                               { role: "provenance",  badge: "FOAF", name: "made" },
 
   // ── PROV-O ────────────────────────────────────────────────
-  "http://www.w3.org/ns/prov#wasGeneratedBy":                     { role: "provenance", badge: "PROV", name: "wasGeneratedBy" },
-  "http://www.w3.org/ns/prov#wasDerivedFrom":                     { role: "provenance", badge: "PROV", name: "wasDerivedFrom" },
-  "http://www.w3.org/ns/prov#wasAttributedTo":                    { role: "provenance", badge: "PROV", name: "wasAttributedTo" },
-  "http://www.w3.org/ns/prov#used":                               { role: "provenance", badge: "PROV", name: "used" },
-  "http://www.w3.org/ns/prov#hadPrimarySource":                   { role: "provenance", badge: "PROV", name: "hadPrimarySource" },
+  "http://www.w3.org/ns/prov#wasGeneratedBy":                     { role: "provenance", badge: "PROV", name: "wasGeneratedBy",  inverseLabel: "Generating activities" },
+  "http://www.w3.org/ns/prov#wasDerivedFrom":                     { role: "provenance", badge: "PROV", name: "wasDerivedFrom",   inverseLabel: "Source resources" },
+  "http://www.w3.org/ns/prov#wasAttributedTo":                    { role: "provenance", badge: "PROV", name: "wasAttributedTo",  inverseLabel: "Attributed agents" },
+  "http://www.w3.org/ns/prov#used":                               { role: "provenance", badge: "PROV", name: "used",             inverseLabel: "Used entities" },
+  "http://www.w3.org/ns/prov#hadPrimarySource":                   { role: "provenance", badge: "PROV", name: "hadPrimarySource", inverseLabel: "Primary sources" },
   "http://www.w3.org/ns/prov#wasRevisionOf":                      { role: "provenance", badge: "PROV", name: "wasRevisionOf" },
   "http://www.w3.org/ns/prov#wasQuotedFrom":                      { role: "provenance", badge: "PROV", name: "wasQuotedFrom" },
   "http://www.w3.org/ns/prov#actedOnBehalfOf":                    { role: "provenance", badge: "PROV", name: "actedOnBehalfOf" },
@@ -159,10 +166,10 @@ const REGISTRY: Record<string, RegistryEntry> = {
   "http://schema.org/image":                                       { role: "media",       badge: "SDO", name: "image" },
   "http://schema.org/url":                                         { role: "media",       badge: "SDO", name: "url" },
   "http://schema.org/sameAs":                                      { role: "structural",  badge: "SDO", name: "sameAs" },
-  "http://schema.org/isPartOf":                                    { role: "relational",  badge: "SDO", name: "isPartOf" },
-  "http://schema.org/hasPart":                                     { role: "relational",  badge: "SDO", name: "hasPart" },
-  "http://schema.org/memberOf":                                    { role: "relational",  badge: "SDO", name: "memberOf" },
-  "http://schema.org/member":                                      { role: "relational",  badge: "SDO", name: "member" },
+  "http://schema.org/isPartOf":                                    { role: "relational",  badge: "SDO", name: "isPartOf",  inverseLabel: "Parent resources" },
+  "http://schema.org/hasPart":                                     { role: "relational",  badge: "SDO", name: "hasPart",   inverseLabel: "Parts" },
+  "http://schema.org/memberOf":                                    { role: "relational",  badge: "SDO", name: "memberOf",  inverseLabel: "Organizations" },
+  "http://schema.org/member":                                      { role: "relational",  badge: "SDO", name: "member",    inverseLabel: "Members" },
   "http://schema.org/price":                                       { role: "numeric",     badge: "SDO", name: "price" },
   "http://schema.org/ratingValue":                                 { role: "numeric",     badge: "SDO", name: "ratingValue" },
   "http://schema.org/reviewCount":                                 { role: "numeric",     badge: "SDO", name: "reviewCount" },
@@ -262,4 +269,13 @@ export function lookupPredicate(iri: string): RegistryEntry {
   }
 
   return { role, badge };
+}
+
+/**
+ * Return the soft inverse label for a predicate — the noun phrase describing
+ * the set of resources you arrive at when navigating via this predicate.
+ * Returns `undefined` for predicates without a registered inverse label.
+ */
+export function getInverseLabel(iri: string): string | undefined {
+  return REGISTRY[iri]?.inverseLabel;
 }

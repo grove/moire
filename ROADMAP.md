@@ -168,10 +168,10 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **`src/lib/context-header.ts`** — label precedence and inverse support
-- Label order: overlay > SHACL shape name > SKOS prefLabel > RDFS label > vocabulary registry name > derived short IRI.
-- Compute soft inverse labels for common predicates (e.g., `affiliatedWith` incoming → "institutions").
-- Generate outgoing phrase: `[source set] [predicate label] [target type]` → "Researchers affiliated with universities".
-- Generate incoming phrase: `[predicate inverse label] of [source set]` → "Affiliations of researchers".
+- [x] Label order: overlay > SHACL shape name > SKOS prefLabel > RDFS label > vocabulary registry name > derived short IRI.
+- [x] Compute soft inverse labels for common predicates (e.g., `affiliatedWith` incoming → "institutions").
+- [x] Generate outgoing phrase: `[source set] [predicate label] [target type]` → "Researchers affiliated with universities".
+- [x] Generate incoming phrase: `[predicate inverse label] of [source set]` → "Affiliations of researchers".
 
 **Before / after examples**:
 
@@ -182,9 +182,9 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 | `broader of Climate Concepts` | `Broader topics for Climate Concepts` |
 
 ### Acceptance criteria
-- Common traversal paths in the test graph read naturally.
-- Headers stay under 100 characters.
-- Fallback to current behavior when no better label is available.
+- [x] Common traversal paths in the test graph read naturally.
+- [x] Headers stay under 100 characters.
+- [x] Fallback to current behavior when no better label is available.
 
 ---
 

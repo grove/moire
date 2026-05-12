@@ -94,7 +94,9 @@ describe("buildContextHeader — set context", () => {
     expect(result).toContain("Researchers");
   });
 
-  it("produces '<pred> of <parent header>' when navigationPredicate is set", () => {
+  // ── v0.3.0: navigation predicate with focusClass uses target-class phrase ──
+
+  it("v0.3.0: uses target class plural when focusClass is set and no inverse label", () => {
     const parentFrame: LensFrame = {
       ...BASE_FRAME,
       context: "set",
@@ -114,8 +116,36 @@ describe("buildContextHeader — set context", () => {
       predicate: () => "affiliatedWith",
     });
     const result = buildContextHeader(stack, 1, labels);
+    // v0.3.0: uses focusClass plural → "Researchers for Universities"
+    expect(result).toContain("Researchers");
+    expect(result).toContain("Universities");
+    expect(result).toContain("for");
+  });
+
+  it("fallback: uses predicate label when no focusClass and no inverse label", () => {
+    const parentFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: "http://example.org/University",
+      facets: {},
+    };
+    const childFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: undefined,
+      navigationPredicate: "http://example.org/affiliatedWith",
+      facets: {},
+    };
+    const stack = [parentFrame, childFrame];
+    const labels = makeLabels({
+      class_: (iri) => (iri.endsWith("University") ? "University" : "Researcher"),
+      predicate: () => "affiliatedWith",
+    });
+    const result = buildContextHeader(stack, 1, labels);
+    // Fallback: "affiliatedWith of Universities"
     expect(result).toContain("affiliatedWith");
-    expect(result).toContain("Universities"); // pluralised parent class
+    expect(result).toContain("Universities");
+    expect(result).toContain("of");
   });
 });
 
@@ -137,10 +167,108 @@ describe("buildContextHeader — relationships context", () => {
   });
 });
 
+// ── v0.3.0: inverse label from LabelCache ─────────────────────
+
+describe("buildContextHeader — v0.3.0 inverse label", () => {
+  it("uses predicateInverse from LabelCache when provided", () => {
+    const parentFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: "http://example.org/Researcher",
+      facets: {},
+    };
+    const childFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      navigationPredicate: "http://example.org/affiliatedWith",
+      facets: {},
+    };
+    const stack = [parentFrame, childFrame];
+    const labels = makeLabels({
+      class_: () => "Researcher",
+      predicate: () => "affiliatedWith",
+      predicateInverse: () => "Institutions",
+    });
+    const result = buildContextHeader(stack, 1, labels);
+    // Uses explicit inverse label → "Institutions for Researchers"
+    expect(result).toBe("Institutions for Researchers");
+  });
+
+  it("uses vocabulary registry inverse label for skos:broader", () => {
+    const parentFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: "http://example.org/Concept",
+      facets: {},
+    };
+    const childFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      navigationPredicate: "http://www.w3.org/2004/02/skos/core#broader",
+      facets: {},
+    };
+    const stack = [parentFrame, childFrame];
+    const labels = makeLabels({
+      class_: () => "Concept",
+      predicate: () => "broader",
+    });
+    const result = buildContextHeader(stack, 1, labels);
+    // Registry inverse for skos:broader → "Broader concepts for Concepts"
+    expect(result).toBe("Broader concepts for Concepts");
+  });
+
+  it("predicateInverse from LabelCache takes priority over registry", () => {
+    const parentFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: "http://example.org/Concept",
+      facets: {},
+    };
+    const childFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      navigationPredicate: "http://www.w3.org/2004/02/skos/core#broader",
+      facets: {},
+    };
+    const stack = [parentFrame, childFrame];
+    const labels = makeLabels({
+      class_: () => "Concept",
+      predicate: () => "broader",
+      predicateInverse: () => "Parent topics",
+    });
+    const result = buildContextHeader(stack, 1, labels);
+    // Explicit override wins → "Parent topics for Concepts"
+    expect(result).toBe("Parent topics for Concepts");
+  });
+
+  it("header is truncated to 100 characters when generated phrase is too long", () => {
+    const longParent = "A".repeat(90);
+    const parentFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      focusClass: "http://example.org/Thing",
+      facets: {},
+    };
+    const childFrame: LensFrame = {
+      ...BASE_FRAME,
+      context: "set",
+      navigationPredicate: "http://www.w3.org/2004/02/skos/core#broader",
+      facets: {},
+    };
+    const stack = [parentFrame, childFrame];
+    const labels = makeLabels({
+      class_: () => longParent,
+      predicate: () => "broader",
+    });
+    const result = buildContextHeader(stack, 1, labels);
+    expect(result.length).toBeLessThanOrEqual(100);
+  });
+});
+
 // ── Recursive two-deep traversal ──────────────────────────────
 
 describe("buildContextHeader — two-deep traversal", () => {
-  it("produces the correct composed string for two navigation steps", () => {
+  it("v0.3.0: uses focusClass phrase for both hops when no inverse labels", () => {
     const frame0: LensFrame = {
       ...BASE_FRAME,
       context: "set",
@@ -174,9 +302,10 @@ describe("buildContextHeader — two-deep traversal", () => {
       },
     });
     const result = buildContextHeader(stack, 2, labels);
-    // Should read: "locatedIn of affiliatedWith of Researchers"
-    expect(result).toContain("locatedIn");
-    expect(result).toContain("affiliatedWith");
+    // frame1 header = "Universities for Researchers"
+    // frame2 header = "Cities for Universities for Researchers"
+    expect(result).toContain("Cities");
+    expect(result).toContain("Universities");
     expect(result).toContain("Researchers");
   });
 });
