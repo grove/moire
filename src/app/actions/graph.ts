@@ -548,6 +548,11 @@ export interface RelationshipInfo {
   usefulness?: number;
   /** Coverage: fraction of entities in the set that have this predicate (0–100). */
   coveragePercent?: number;
+  // v0.5.0 — richer row metadata from graph introspection
+  domainLabel?: string;
+  rangeLabel?: string;
+  inverseLabel?: string;
+  owlCharacteristics?: string[];
 }
 
 export async function fetchRelationships(
@@ -555,6 +560,7 @@ export async function fetchRelationships(
   graphIRI: string | null,
   classIRI?: string,
   auth?: EndpointConfig["auth"],
+  predicateSummaries?: PredicateSummary[],
 ): Promise<RelationshipInfo[]> {
   const query = buildRelationshipsQuery(graphIRI, classIRI);
   const bindings = await executeSparql(endpointUrl, query, auth);
@@ -613,6 +619,19 @@ export async function fetchRelationships(
       cardinality,
       usefulness,
       coveragePercent,
+      // v0.5.0 — merge v0.4 metadata from introspection if provided
+      ...(predicateSummaries
+        ? (() => {
+            const meta = predicateSummaries.find((p) => p.iri === r.predicate);
+            if (!meta) return {};
+            return {
+              domainLabel: meta.domainLabel,
+              rangeLabel: meta.rangeLabel,
+              inverseLabel: meta.inverseLabel,
+              owlCharacteristics: meta.owlCharacteristics,
+            };
+          })()
+        : {}),
     };
   });
 }

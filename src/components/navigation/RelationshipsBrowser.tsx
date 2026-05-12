@@ -67,6 +67,7 @@ export function RelationshipsBrowser() {
   const frame = useNavigationStore((s) => s.current());
   const traverseVia = useNavigationStore((s) => s.traverseVia);
   const getEndpoint = useEndpointStore((s) => s.getEndpoint);
+  const getIntrospection = useEndpointStore((s) => s.getIntrospection);
 
   const key = frame.endpointId
     ? `relationships:${frame.endpointId}:${frame.graphIRI}:${frame.focusClass ?? "all"}`
@@ -77,11 +78,18 @@ export function RelationshipsBrowser() {
     async () => {
       const endpoint = getEndpoint(frame.endpointId);
       if (!endpoint) return [];
+      // Pass introspected predicates to enrich with v0.4 metadata (domain/range/inverse/owl)
+      const summaries = getIntrospection(frame.endpointId);
+      const graphSummary = summaries?.find(
+        (s) => s.iri === (frame.graphIRI ?? "default"),
+      );
+      const predicateSummaries = graphSummary?.predicates;
       return fetchRelationships(
         endpoint.sparqlUrl,
         frame.graphIRI,
         frame.focusClass,
         endpoint.auth,
+        predicateSummaries,
       );
     },
     { revalidateOnFocus: false },
@@ -210,42 +218,76 @@ function RelationshipRow({
 }) {
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group" data-testid="relationship-row">
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start gap-2 min-w-0 flex-1">
         {/* Role icon — visually distinct, accessible */}
-        <RoleIcon role={rel.role} />
+        <RoleIcon role={rel.role} className="mt-0.5 shrink-0" />
 
-        <CardinalityIndicator cardinality={rel.cardinality} />
+        <div className="min-w-0 flex-1">
+          {/* Primary row: label + badges */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <CardinalityIndicator cardinality={rel.cardinality} />
 
-        {/* Predicate label with rich tooltip */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="font-mono text-xs cursor-help truncate">{rel.label}</span>
-          </TooltipTrigger>
-          <TooltipContent className="p-3">
-            <PredicateTooltipContent
-              rel={rel}
-              endpointId={endpointId}
-              graphIRI={graphIRI}
-              classIRI={classIRI}
-            />
-          </TooltipContent>
-        </Tooltip>
+            {/* Predicate label with rich tooltip */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-mono text-xs cursor-help truncate">{rel.label}</span>
+              </TooltipTrigger>
+              <TooltipContent className="p-3">
+                <PredicateTooltipContent
+                  rel={rel}
+                  endpointId={endpointId}
+                  graphIRI={graphIRI}
+                  classIRI={classIRI}
+                />
+              </TooltipContent>
+            </Tooltip>
 
-        {rel.vocabularyBadge && (
-          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
-            {rel.vocabularyBadge}
-          </Badge>
-        )}
-        <span className="text-xs text-muted-foreground shrink-0">
-          {formatCount(rel.subjectCount)} subj → {formatCount(rel.objectCount)} obj
-        </span>
+            {rel.vocabularyBadge && (
+              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                {rel.vocabularyBadge}
+              </Badge>
+            )}
+
+            {/* Inverse label badge — v0.5.0 */}
+            {rel.inverseLabel && (
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0" title={`Inverse: ${rel.inverseLabel}`}>
+                ↔ {rel.inverseLabel}
+              </Badge>
+            )}
+
+            {/* Coverage percentage — v0.5.0 */}
+            {rel.coveragePercent !== undefined && (
+              <span className="text-[10px] text-muted-foreground shrink-0" data-testid="coverage-percent">
+                {rel.coveragePercent}%
+              </span>
+            )}
+          </div>
+
+          {/* Secondary row: domain/range — v0.5.0 */}
+          {(rel.domainLabel || rel.rangeLabel) && (
+            <p className="text-[10px] text-muted-foreground mt-0.5" data-testid="domain-range-text">
+              {rel.domainLabel && (
+                <span>Usually describes: <span className="font-medium">{rel.domainLabel}</span></span>
+              )}
+              {rel.domainLabel && rel.rangeLabel && <span> · </span>}
+              {rel.rangeLabel && (
+                <span>Usually points to: <span className="font-medium">{rel.rangeLabel}</span></span>
+              )}
+            </p>
+          )}
+
+          {/* Count info */}
+          <p className="text-[10px] text-muted-foreground">
+            {formatCount(rel.subjectCount)} subj → {formatCount(rel.objectCount)} obj
+          </p>
+        </div>
       </div>
       {showFollow && (
         <Button
           variant="ghost"
           size="sm"
           onClick={onFollow}
-          className="text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+          className="text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
         >
           Follow as set →
         </Button>

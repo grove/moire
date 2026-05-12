@@ -91,6 +91,21 @@ export function PredicateTooltipContent({
         </p>
       )}
 
+      {/* OWL characteristics — v0.5.0 */}
+      {rel.owlCharacteristics && rel.owlCharacteristics.length > 0 && (
+        <div className="flex flex-wrap gap-1 pt-0.5">
+          {rel.owlCharacteristics.map((char) => (
+            <span
+              key={char}
+              className="text-[9px] bg-muted px-1 py-0.5 rounded font-mono"
+              title={`OWL property characteristic: ${char}`}
+            >
+              {char}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Top values */}
       <div className="pt-0.5">
         <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">
