@@ -9,3 +9,6 @@ out/
 e2e/.auth/
 playwright-report/
 test-results/
+
+# Vitest coverage
+coverage/
