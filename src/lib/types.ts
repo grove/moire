@@ -63,6 +63,16 @@ export interface PredicateSummary {
   cardinality?: PredicateCardinality;
   vocabularyBadge?: string;
   usefulness?: number;
+  // v0.4.0 — graph-sourced metadata
+  rdfsLabel?: string;
+  skosDefinition?: string;
+  inverseIRI?: string;
+  inverseLabel?: string;
+  domain?: string;
+  domainLabel?: string;
+  range?: string;
+  rangeLabel?: string;
+  owlCharacteristics?: string[];
 }
 
 export interface ClassSummary {
