@@ -198,26 +198,26 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **`src/lib/metadata-queries.ts`** _(new file)_
-- Batched predicate metadata query: `rdfs:label`, `skos:prefLabel`, `rdfs:comment`, `skos:definition`, `rdfs:domain`, `rdfs:range`, `owl:inverseOf`, OWL property type (`FunctionalProperty`, `SymmetricProperty`, `TransitiveProperty`, etc.).
-- Executes once during graph introspection; cached with graph summary.
-- Query spec: [plans/annotations.md § 10.1](plans/annotations.md#101-predicate-metadata-query).
-- Graceful fallback to v0.1 heuristics if query fails or times out.
+- [x] Batched predicate metadata query: `rdfs:label`, `skos:prefLabel`, `rdfs:comment`, `skos:definition`, `rdfs:domain`, `rdfs:range`, `owl:inverseOf`, OWL property type (`FunctionalProperty`, `SymmetricProperty`, `TransitiveProperty`, etc.).
+- [x] Executes once during graph introspection; cached with graph summary.
+- [x] Query spec: [plans/annotations.md § 10.1](plans/annotations.md#101-predicate-metadata-query).
+- [x] Graceful fallback to v0.1 heuristics if query fails or times out.
 
 **`PredicateSummary` type** — new optional fields
-- `rdfsLabel?: string`
-- `skosDefinition?: string`
-- `inverseIRI?: string; inverseLabel?: string`
-- `domain?: string; domainLabel?: string`
-- `range?: string; rangeLabel?: string`
-- `owlCharacteristics?: string[]`
+- [x] `rdfsLabel?: string`
+- [x] `skosDefinition?: string`
+- [x] `inverseIRI?: string; inverseLabel?: string`
+- [x] `domain?: string; domainLabel?: string`
+- [x] `range?: string; rangeLabel?: string`
+- [x] `owlCharacteristics?: string[]`
 
 **Context header** (builds on v0.3)
-- Now uses `inverseLabel` from graph metadata, not only registry.
+- [x] Now uses `inverseLabel` from graph metadata, not only registry.
 
 ### Acceptance criteria
-- Metadata query executes in < 2s on test graphs.
-- Results survive page reload (cached in graph summary).
-- Label precedence observable in debug output.
+- [x] Metadata query executes in < 2s on test graphs.
+- [x] Results survive page reload (cached in graph summary).
+- [x] Label precedence observable in debug output.
 
 ---
 

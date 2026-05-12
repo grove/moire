@@ -28,6 +28,13 @@ import {
   buildPredicateTopValuesQuery,
 } from "@/lib/sparql";
 import { annotatePredicates } from "@/lib/facet-generator";
+import {
+  buildPredicateMetadataQuery,
+  applyPredicateMetadata,
+  chunk,
+  BATCH_SIZE,
+  type MetadataBinding,
+} from "@/lib/metadata-queries";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
 import type { EndpointCapabilities } from "@/lib/types";
@@ -307,7 +314,27 @@ async function introspectGraph(
       isNavigationCandidate: false,
       isStructural: false,
     }));
-  const predicates = annotatePredicates(rawPredicates);
+  const annotated = annotatePredicates(rawPredicates);
+
+  // v0.4.0 — enrich with graph-sourced predicate metadata (single batched query)
+  const predicates = await (async () => {
+    try {
+      const predicateIRIs = annotated.map((p) => p.iri);
+      const batches = chunk(predicateIRIs, BATCH_SIZE);
+      const allBindings: MetadataBinding[] = [];
+      for (const batch of batches) {
+        const query = buildPredicateMetadataQuery(batch, giri);
+        if (!query) continue;
+        const bindings = await executeSparql(config.sparqlUrl, query, config.auth);
+        allBindings.push(...(bindings as MetadataBinding[]));
+      }
+      return applyPredicateMetadata(annotated, allBindings);
+    } catch (err) {
+      // Graceful fallback: log but do not break introspection
+      console.warn("[v0.4.0] Predicate metadata query failed, using heuristics only:", err);
+      return annotated;
+    }
+  })();
 
   // Parse label heuristic
   const labelPredicate = labelBindings[0]?.labelPredicate?.value

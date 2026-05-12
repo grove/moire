@@ -38,7 +38,20 @@ export function LensBreadcrumb() {
     class_: (iri) => shortIRI(iri),
     predicate: (iri) => lookupPredicate(iri).name ?? shortIRI(iri),
     value: (iri) => shortIRI(iri),
-    predicateInverse: (iri) => getInverseLabel(iri),
+    /**
+     * v0.4.0: prefer graph-sourced inverseLabel (from PredicateSummary),
+     * then fall back to the vocabulary registry.
+     */
+    predicateInverse: (iri) => {
+      const graphs = frame.endpointId ? getIntrospection(frame.endpointId) : undefined;
+      if (graphs) {
+        for (const g of graphs) {
+          const pred = g.predicates.find((p) => p.iri === iri);
+          if (pred?.inverseLabel) return pred.inverseLabel;
+        }
+      }
+      return getInverseLabel(iri);
+    },
   };
 
   const contextHeader = buildContextHeader(stack, pointer, labels);
