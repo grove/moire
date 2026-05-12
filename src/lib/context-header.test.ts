@@ -19,10 +19,10 @@ const BASE_FRAME: LensFrame = {
 function makeLabels(overrides: Partial<LabelCache> = {}): LabelCache {
   return {
     graph: (iri) => (iri ? iri.split("/").pop() ?? iri : "Default Graph"),
-    entity: (iri) => undefined,
+    entity: (_iri) => undefined,
     class_: (iri) => iri.split(/[#/]/).pop() ?? iri,
     predicate: (iri) => iri.split(/[#/]/).pop() ?? iri,
-    value: (iri) => undefined,
+    value: (_iri) => undefined,
     ...overrides,
   };
 }
