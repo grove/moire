@@ -16,30 +16,30 @@ The current theme is **Annotations**: making Moire explain predicates, resources
 ### Changes
 
 **`src/lib/vocabulary-registry.ts`** _(new file)_
-- Map 50+ common predicates from RDF/RDFS/OWL/SKOS/Dublin Core/FOAF/PROV/schema.org to semantic roles: `labelling`, `descriptive`, `classifying`, `relational`, `temporal`, `numeric`, `provenance`, `structural`, `media`.
-- Heuristic fallback for predicates not in the registry (by namespace and name pattern).
+- [x] Map 50+ common predicates from RDF/RDFS/OWL/SKOS/Dublin Core/FOAF/PROV/schema.org to semantic roles: `labelling`, `descriptive`, `classifying`, `relational`, `temporal`, `numeric`, `provenance`, `structural`, `media`.
+- [x] Heuristic fallback for predicates not in the registry (by namespace and name pattern).
 
 **`src/lib/facet-generator.ts`** — extend `annotatePredicates`
-- Add `role: PredicateRole` to `PredicateSummary` (from registry, then heuristic).
-- Add `cardinality: "single" | "usually-single" | "multi" | "highly-multi"` (from `objectCount / subjectCount` ratio).
-- Add `vocabularyBadge?: string` (short namespace label: "SKOS", "PROV", etc.).
-- Add `usefulness: number` (0–100 score: boost relational/classifying roles, high coverage, meaningful cardinality; penalize structural, extremely sparse, or uniform-value predicates).
+- [x] Add `role: PredicateRole` to `PredicateSummary` (from registry, then heuristic).
+- [x] Add `cardinality: "single" | "usually-single" | "multi" | "highly-multi"` (from `objectCount / subjectCount` ratio).
+- [x] Add `vocabularyBadge?: string` (short namespace label: "SKOS", "PROV", etc.).
+- [x] Add `usefulness: number` (0–100 score: boost relational/classifying roles, high coverage, meaningful cardinality; penalize structural, extremely sparse, or uniform-value predicates).
 
 **Relationships Browser**
-- Group predicates by role into sections: Explore, Filter, Describe, Source, Technical.
-- Show cardinality indicator and vocabulary badge on each row.
+- [x] Group predicates by role into sections: Explore, Filter, Describe, Source, Technical.
+- [x] Show cardinality indicator and vocabulary badge on each row.
 
 **Jump strip**
-- Sort buttons by usefulness score (most useful first).
-- Limit to 3–5 buttons.
+- [x] Sort buttons by usefulness score (most useful first).
+- [x] Limit to 3–5 buttons.
 
 **Facet panel**
-- Show classifying predicates first, relational second.
+- [x] Show classifying predicates first, relational second.
 
 ### Acceptance criteria
-- All discovered predicates in test graphs receive role and cardinality.
-- Usefulness ordering is stable and sensible.
-- No performance regression on introspection.
+- [x] All discovered predicates in test graphs receive role and cardinality.
+- [x] Usefulness ordering is stable and sensible.
+- [x] No performance regression on introspection.
 
 ---
 

@@ -27,6 +27,7 @@ import {
   buildRelationshipsQuery,
 } from "@/lib/sparql";
 import { annotatePredicates } from "@/lib/facet-generator";
+import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
 import type { EndpointCapabilities } from "@/lib/types";
 
@@ -444,7 +445,6 @@ export async function fetchFacetCounts(
           def.sparqlPredicate,
         );
         // Output curl command for debugging
-        const encodedQuery = Buffer.from(query).toString('base64');
         const curlCmd = `curl -X POST "${endpointUrl}" \\
   -H "Content-Type: application/sparql-query" \\
   -H "Accept: application/sparql-results+json" \\
@@ -514,6 +514,10 @@ export interface RelationshipInfo {
   objectCount: number;
   valueKind: string;
   isNavigationCandidate: boolean;
+  role?: import("@/lib/vocabulary-registry").PredicateRole;
+  vocabularyBadge?: string;
+  cardinality?: import("@/lib/types").PredicateCardinality;
+  usefulness?: number;
 }
 
 export async function fetchRelationships(
@@ -525,7 +529,7 @@ export async function fetchRelationships(
   const query = buildRelationshipsQuery(graphIRI, classIRI);
   const bindings = await executeSparql(endpointUrl, query, auth);
 
-  return bindings.map((b) => ({
+  const raw = bindings.map((b) => ({
     predicate: b.predicate.value,
     label: shortIRI(b.predicate.value),
     subjectCount: parseInt(b.subjectCount?.value ?? "0", 10),
@@ -533,4 +537,46 @@ export async function fetchRelationships(
     valueKind: b.valueKind?.value ?? "literal",
     isNavigationCandidate: b.valueKind?.value === "iri" && parseInt(b.objectCount?.value ?? "0", 10) >= 2,
   }));
+
+  // Annotate with vocabulary registry (role, badge) and cardinality/usefulness
+  const maxSubjectCount = raw.reduce((m, r) => Math.max(m, r.subjectCount), 0);
+
+  return raw.map((r) => {
+    const entry = lookupPredicate(r.predicate);
+    const subjectCount = r.subjectCount;
+    const objectCount = r.objectCount;
+    // Cardinality
+    let cardinality: RelationshipInfo["cardinality"] = "single";
+    if (subjectCount > 0) {
+      const ratio = objectCount / subjectCount;
+      if (ratio > 5) cardinality = "highly-multi";
+      else if (ratio > 1.5) cardinality = "multi";
+      else if (ratio > 1.1) cardinality = "usually-single";
+    }
+    // Usefulness (simplified version for RelationshipInfo)
+    let usefulness = 50;
+    const role = entry.role;
+    switch (role) {
+      case "relational":  usefulness += 20; break;
+      case "classifying": usefulness += 15; break;
+      case "descriptive": usefulness += 5;  break;
+      case "labelling":   usefulness += 3;  break;
+      case "temporal":    usefulness += 3;  break;
+      case "numeric":     usefulness += 2;  break;
+      case "provenance":  usefulness -= 5;  break;
+      case "structural":  usefulness -= 35; break;
+      default: break;
+    }
+    if (maxSubjectCount > 0 && subjectCount / maxSubjectCount >= 0.5) usefulness += 10;
+    if (objectCount < 3) usefulness -= 15;
+    usefulness = Math.max(0, Math.min(100, usefulness));
+
+    return {
+      ...r,
+      role: entry.role,
+      vocabularyBadge: entry.badge,
+      cardinality,
+      usefulness,
+    };
+  });
 }

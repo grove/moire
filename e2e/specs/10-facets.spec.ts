@@ -29,7 +29,6 @@ test.describe("Facet sidebar", () => {
       .waitFor({ state: "detached", timeout: 20_000 })
       .catch(() => {});
 
-    const facetBtns = sidebar.getByRole("button").filter({ hasNot: reviewPage.locator(".text-xs") });
     // At minimum: the facet value buttons or the "Clear all filters" button exist
     const anyBtn = sidebar.getByRole("button");
     const count = await anyBtn.count();

@@ -27,25 +27,34 @@ test.describe("Relationships browser", () => {
       .catch(() => {}); // ok if there were none
 
     const body = await bsbmPage.locator("body").textContent();
+    // Relationships browser now shows role-based sections
     const hasData =
-      body?.includes("subjects") ||
-      body?.includes("Outgoing") ||
-      body?.includes("Literal properties");
+      body?.includes("subj") ||
+      body?.includes("Explore") ||
+      body?.includes("Filter") ||
+      body?.includes("Describe") ||
+      body?.includes("Source") ||
+      body?.includes("Technical");
     expect(hasData).toBe(true);
   });
 
-  test("shows Outgoing or Literal sections", async ({ bsbmPage }) => {
+  test("shows role-based sections (Explore, Filter, Describe, Source, or Technical)", async ({ bsbmPage }) => {
     await bsbmPage
       .locator(".animate-pulse")
       .waitFor({ state: "detached", timeout: 30_000 })
       .catch(() => {});
 
-    const outgoing = bsbmPage.getByText("Outgoing (subject → object)");
-    const literal = bsbmPage.getByText("Literal properties");
-    const eitherVisible =
-      (await outgoing.isVisible().catch(() => false)) ||
-      (await literal.isVisible().catch(() => false));
-    expect(eitherVisible).toBe(true);
+    // At least one role-based section heading should appear
+    const sectionHeadings = ["Explore", "Filter", "Describe", "Source", "Technical"];
+    let anyVisible = false;
+    for (const heading of sectionHeadings) {
+      const el = bsbmPage.getByText(heading, { exact: true });
+      if (await el.isVisible().catch(() => false)) {
+        anyVisible = true;
+        break;
+      }
+    }
+    expect(anyVisible).toBe(true);
   });
 
   test("Follow as set button allows traversal", async ({ bsbmPage }) => {
