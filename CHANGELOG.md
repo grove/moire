@@ -7,6 +7,7 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 ## Table of Contents
 
 <!-- TOC start -->
+- [0.8.0 — VoID Dataset Metadata](#080--void-dataset-metadata)
 - [0.7.0 — SHACL Data Quality](#070--shacl-data-quality)
 - [0.6.0 — Rich Entity Detail Annotations](#060--rich-entity-detail-annotations)
 - [0.5.0 — Richer Relationship Browser & Explanatory Empty States](#050--richer-relationship-browser--explanatory-empty-states)
@@ -19,6 +20,36 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 - [0.2.0 — Breadcrumbs & Annotated Tooltips](#020--breadcrumbs--annotated-tooltips)
 - [0.1.0 — Predicate Roles & Smarter Ordering](#010--predicate-roles--smarter-ordering)
 <!-- TOC end -->
+
+---
+
+## 0.8.0 — VoID Dataset Metadata
+
+The screen where you choose a graph to explore now shows real dataset information
+— title, description, publisher, last-updated date, and the vocabularies in use —
+instead of just a raw web address.
+
+### What you'll notice
+
+- **Dataset title and description.** When a graph publishes VoID metadata, its
+  card shows the human-readable title (e.g. *"Research Dataset"*) and a short
+  description instead of the raw IRI.
+- **Publisher and modified date.** Secondary metadata lines show who published
+  the dataset and when it was last updated.
+- **Vocabulary badges.** If the graph declares which vocabularies it uses
+  (SKOS, FOAF, Dublin Core, etc.), small badges appear on the card.
+- **Suggested starting points.** When the dataset defines root or example
+  resources via `void:rootResource` / `void:exampleResource`, a "Suggested
+  starting points" section appears, giving you an entry point into the data.
+
+### Details
+
+- VoID metadata is fetched opportunistically during introspection — it never
+  blocks or delays the card from appearing.
+- Graphs without VoID metadata continue to show the same raw-IRI card as before
+  with no visible change.
+- The feature is fully tested: 9 E2E tests verify VoID rendering, fallback
+  behaviour, and absence of regression on graphs that have no VoID.
 
 ---
 

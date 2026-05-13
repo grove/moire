@@ -11,6 +11,8 @@ import {
   parseShaclShapes,
   buildShaclViolationCheckQuery,
   computeShaclViolations,
+  buildVoidDatasetQuery,
+  parseVoidDataset,
 } from "./metadata-queries";
 import type { PredicateSummary } from "./types";
 
@@ -721,5 +723,208 @@ describe("computeShaclViolations", () => {
     const result = computeShaclViolations(shapes, []);
     // name and date are required; optional has minCount 0
     expect(result).toHaveLength(2);
+  });
+});
+
+// ── buildVoidDatasetQuery ──────────────────────────────────────
+
+describe("buildVoidDatasetQuery", () => {
+  it("returns a non-empty SPARQL query string", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query.length).toBeGreaterThan(0);
+  });
+
+  it("queries for void:Dataset", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("void:Dataset");
+  });
+
+  it("includes dcterms:title in the query", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("dcterms:title");
+  });
+
+  it("includes dcterms:description in the query", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("dcterms:description");
+  });
+
+  it("includes void:vocabulary in the query", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("void:vocabulary");
+  });
+
+  it("includes void:rootResource in the query", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("void:rootResource");
+  });
+
+  it("includes void:exampleResource in the query", () => {
+    const query = buildVoidDatasetQuery(null);
+    expect(query).toContain("void:exampleResource");
+  });
+
+  it("returns same query regardless of graphIRI (queries default graph)", () => {
+    const q1 = buildVoidDatasetQuery(null);
+    const q2 = buildVoidDatasetQuery("http://example.org/graph");
+    expect(q1).toBe(q2);
+  });
+});
+
+// ── parseVoidDataset ───────────────────────────────────────────
+
+const VOID_DATASET_IRI = "http://example.org/dataset";
+const SKOS_NS = "http://www.w3.org/2004/02/skos/core#";
+const EX_ROOT = "http://example.org/rootResource1";
+const EX_EXAMPLE = "http://example.org/exampleResource1";
+
+describe("parseVoidDataset", () => {
+  it("returns undefined when bindings array is empty", () => {
+    expect(parseVoidDataset([])).toBeUndefined();
+  });
+
+  it("parses title from dcterms:title binding", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        title: { type: "literal", value: "Research Dataset" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.title).toBe("Research Dataset");
+  });
+
+  it("parses description from dcterms:description binding", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        description: { type: "literal", value: "A dataset about research." },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.description).toBe("A dataset about research.");
+  });
+
+  it("parses publisher from dcterms:publisher binding", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        publisher: { type: "literal", value: "Example Corp" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.publisher).toBe("Example Corp");
+  });
+
+  it("parses modified date from dcterms:modified binding", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        modified: { type: "literal", value: "2024-06-01" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.modified).toBe("2024-06-01");
+  });
+
+  it("parses numeric triples count", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        triples: { type: "literal", value: "42000" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.triples).toBe(42000);
+  });
+
+  it("accumulates vocabularies across multiple rows", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        vocabulary: { type: "uri", value: SKOS_NS },
+      },
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        vocabulary: { type: "uri", value: "http://xmlns.com/foaf/0.1/" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.vocabularies).toHaveLength(2);
+    expect(result?.vocabularies).toContain(SKOS_NS);
+  });
+
+  it("accumulates rootResources across multiple rows", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        rootResource: { type: "uri", value: EX_ROOT },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.rootResources).toContain(EX_ROOT);
+  });
+
+  it("accumulates exampleResources across multiple rows", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        exampleResource: { type: "uri", value: EX_EXAMPLE },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.exampleResources).toContain(EX_EXAMPLE);
+  });
+
+  it("sets vocabularies to undefined when no vocabulary bindings present", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        title: { type: "literal", value: "Dataset" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.vocabularies).toBeUndefined();
+  });
+
+  it("sets rootResources to undefined when no rootResource bindings present", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        title: { type: "literal", value: "Dataset" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.rootResources).toBeUndefined();
+  });
+
+  it("uses first-wins semantics for scalar title field across multiple rows", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        title: { type: "literal", value: "First Title" },
+      },
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        title: { type: "literal", value: "Second Title" },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.title).toBe("First Title");
+  });
+
+  it("deduplicates vocabulary IRIs", () => {
+    const bindings = [
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        vocabulary: { type: "uri", value: SKOS_NS },
+      },
+      {
+        dataset: { type: "uri", value: VOID_DATASET_IRI },
+        vocabulary: { type: "uri", value: SKOS_NS },
+      },
+    ];
+    const result = parseVoidDataset(bindings);
+    expect(result?.vocabularies).toHaveLength(1);
   });
 });

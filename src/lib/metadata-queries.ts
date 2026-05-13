@@ -490,3 +490,127 @@ export function computeShaclViolations(
 
   return violations;
 }
+
+// ── v0.8.0 — VoID dataset metadata query ─────────────────────────────────────
+
+import type { VoidDataset } from "./types";
+
+/**
+ * Build a SPARQL SELECT query that collects VoID dataset metadata.
+ *
+ * Runs opportunistically during graph introspection — does not block if the
+ * endpoint has no VoID metadata (returns empty bindings which parseVoidDataset
+ * maps to undefined).
+ *
+ * Queries the default graph (VoID metadata is typically not stored inside named
+ * data graphs).
+ *
+ * Query spec: plans/annotations.md § 10.4
+ */
+export function buildVoidDatasetQuery(_graphIRI: string | null): string {
+  return `
+PREFIX void:    <http://rdfs.org/ns/void#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT DISTINCT ?dataset ?title ?description ?creator ?publisher ?license
+       ?created ?modified ?rootResource ?exampleResource ?vocabulary
+       ?triples ?entities ?classes ?properties
+WHERE {
+  ?dataset a void:Dataset .
+  OPTIONAL { ?dataset dcterms:title ?title }
+  OPTIONAL { ?dataset dcterms:description ?description }
+  OPTIONAL { ?dataset dcterms:creator ?creator }
+  OPTIONAL { ?dataset dcterms:publisher ?publisher }
+  OPTIONAL { ?dataset dcterms:license ?license }
+  OPTIONAL { ?dataset dcterms:created ?created }
+  OPTIONAL { ?dataset dcterms:modified ?modified }
+  OPTIONAL { ?dataset void:rootResource ?rootResource }
+  OPTIONAL { ?dataset void:exampleResource ?exampleResource }
+  OPTIONAL { ?dataset void:vocabulary ?vocabulary }
+  OPTIONAL { ?dataset void:triples ?triples }
+  OPTIONAL { ?dataset void:entities ?entities }
+  OPTIONAL { ?dataset void:classes ?classes }
+  OPTIONAL { ?dataset void:properties ?properties }
+}
+`.trim();
+}
+
+/**
+ * Parse SPARQL bindings from a VoID dataset query into a {@link VoidDataset} object.
+ *
+ * Multiple rows may exist for the same dataset (one per vocabulary, rootResource,
+ * or exampleResource). Scalar fields use "first wins" semantics; set fields
+ * accumulate all values.
+ *
+ * Returns `undefined` when no bindings are present (graceful fallback for graphs
+ * without VoID metadata).
+ */
+export function parseVoidDataset(bindings: MetadataBinding[]): VoidDataset | undefined {
+  if (bindings.length === 0) return undefined;
+
+  let iri: string | undefined;
+  let title: string | undefined;
+  let description: string | undefined;
+  let creator: string | undefined;
+  let publisher: string | undefined;
+  let license: string | undefined;
+  let created: string | undefined;
+  let modified: string | undefined;
+  let triples: number | undefined;
+  let entities: number | undefined;
+  let classes: number | undefined;
+  let properties: number | undefined;
+  const vocabularies = new Set<string>();
+  const rootResources = new Set<string>();
+  const exampleResources = new Set<string>();
+
+  for (const row of bindings) {
+    if (row.dataset?.value && !iri) iri = row.dataset.value;
+    if (row.title?.value && !title) title = row.title.value;
+    if (row.description?.value && !description) description = row.description.value;
+    if (row.creator?.value && !creator) creator = row.creator.value;
+    if (row.publisher?.value && !publisher) publisher = row.publisher.value;
+    if (row.license?.value && !license) license = row.license.value;
+    if (row.created?.value && !created) created = row.created.value;
+    if (row.modified?.value && !modified) modified = row.modified.value;
+
+    if (row.triples?.value && triples === undefined) {
+      const n = parseInt(row.triples.value, 10);
+      if (!isNaN(n)) triples = n;
+    }
+    if (row.entities?.value && entities === undefined) {
+      const n = parseInt(row.entities.value, 10);
+      if (!isNaN(n)) entities = n;
+    }
+    if (row.classes?.value && classes === undefined) {
+      const n = parseInt(row.classes.value, 10);
+      if (!isNaN(n)) classes = n;
+    }
+    if (row.properties?.value && properties === undefined) {
+      const n = parseInt(row.properties.value, 10);
+      if (!isNaN(n)) properties = n;
+    }
+
+    if (row.vocabulary?.value) vocabularies.add(row.vocabulary.value);
+    if (row.rootResource?.value) rootResources.add(row.rootResource.value);
+    if (row.exampleResource?.value) exampleResources.add(row.exampleResource.value);
+  }
+
+  return {
+    iri,
+    title,
+    description,
+    creator,
+    publisher,
+    license,
+    created,
+    modified,
+    triples,
+    entities,
+    classes,
+    properties,
+    vocabularies: vocabularies.size > 0 ? Array.from(vocabularies) : undefined,
+    rootResources: rootResources.size > 0 ? Array.from(rootResources) : undefined,
+    exampleResources: exampleResources.size > 0 ? Array.from(exampleResources) : undefined,
+  };
+}

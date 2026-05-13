@@ -32,6 +32,42 @@ export interface EndpointCapabilities {
 
 // ── Introspection types ────────────────────────────────────────
 
+// ── VoID dataset metadata (v0.8.0) ────────────────────────────
+
+/** Dataset-level metadata collected from VoID vocabulary annotations. */
+export interface VoidDataset {
+  /** Dataset IRI (the subject of void:Dataset triples). */
+  iri?: string;
+  /** dcterms:title */
+  title?: string;
+  /** dcterms:description */
+  description?: string;
+  /** dcterms:creator */
+  creator?: string;
+  /** dcterms:publisher */
+  publisher?: string;
+  /** dcterms:license */
+  license?: string;
+  /** dcterms:created */
+  created?: string;
+  /** dcterms:modified */
+  modified?: string;
+  /** void:triples (total triple count declared in VoID) */
+  triples?: number;
+  /** void:entities */
+  entities?: number;
+  /** void:classes */
+  classes?: number;
+  /** void:properties */
+  properties?: number;
+  /** void:vocabulary IRIs (vocabularies used by the dataset) */
+  vocabularies?: string[];
+  /** void:rootResource IRIs */
+  rootResources?: string[];
+  /** void:exampleResource IRIs */
+  exampleResources?: string[];
+}
+
 export interface GraphSummary {
   iri: string;
   label: string;
@@ -41,6 +77,8 @@ export interface GraphSummary {
   classes: ClassSummary[];
   labelPredicate: string;
   introspectedAt: Date;
+  /** v0.8.0 — VoID dataset metadata (present when the graph publishes VoID). */
+  voidMetadata?: VoidDataset;
 }
 
 export type PredicateCardinality =

@@ -329,23 +329,23 @@ Try filtering researchers first, or follow a different path.
 ### Changes
 
 **`src/lib/metadata-queries.ts`** — VoID dataset query
-- Runs opportunistically during graph introspection (does not block).
-- Collects: `dcterms:title`, `dcterms:description`, `dcterms:publisher`, `dcterms:license`, `dcterms:modified`, `void:vocabulary`, `void:rootResource`, `void:exampleResource`, triple/entity/class/property counts.
-- Query spec: [plans/annotations.md § 10.4](plans/annotations.md#104-void-dataset-metadata-query).
+- [x] Runs opportunistically during graph introspection (does not block).
+- [x] Collects: `dcterms:title`, `dcterms:description`, `dcterms:publisher`, `dcterms:license`, `dcterms:modified`, `void:vocabulary`, `void:rootResource`, `void:exampleResource`, triple/entity/class/property counts.
+- [x] Query spec: [plans/annotations.md § 10.4](plans/annotations.md#104-void-dataset-metadata-query).
 
 **Graph Browser cards**
-- Show dataset title and description instead of raw graph IRI when available.
-- Show publisher, license, modified date as secondary metadata.
-- Show vocabulary badges (Dublin Core, FOAF, SKOS, etc.).
+- [x] Show dataset title and description instead of raw graph IRI when available.
+- [x] Show publisher, license, modified date as secondary metadata.
+- [x] Show vocabulary badges (Dublin Core, FOAF, SKOS, etc.).
 
 **Screen overview**
-- "Suggested starting points" from `void:rootResource` / `void:exampleResource`.
-- "Uses these vocabularies" strip when known.
+- [x] "Suggested starting points" from `void:rootResource` / `void:exampleResource`.
+- [x] "Uses these vocabularies" strip when known.
 
 ### Acceptance criteria
-- Cards show human-readable metadata on test graphs with VoID.
-- Graceful fallback to current introspection data when VoID absent.
-- No performance penalty when VoID query returns nothing.
+- [x] Cards show human-readable metadata on test graphs with VoID.
+- [x] Graceful fallback to current introspection data when VoID absent.
+- [x] No performance penalty when VoID query returns nothing.
 
 ---
 

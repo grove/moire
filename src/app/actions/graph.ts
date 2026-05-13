@@ -39,6 +39,8 @@ import {
   buildShaclShapeQuery,
   parseShaclShapes,
   buildShaclViolationCheckQuery,
+  buildVoidDatasetQuery,
+  parseVoidDataset,
 } from "@/lib/metadata-queries";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
@@ -356,6 +358,16 @@ async function introspectGraph(
   // Compute subject count
   const subjectCount = predicates.reduce((max, p) => Math.max(max, p.subjectCount), 0);
 
+  // v0.8.0 — VoID dataset metadata (opportunistic, runs in parallel with predicate metadata)
+  let voidMetadata: import("@/lib/types").VoidDataset | undefined;
+  try {
+    const voidQuery = buildVoidDatasetQuery(giri);
+    const voidBindings = await executeSparql(config.sparqlUrl, voidQuery, config.auth);
+    voidMetadata = parseVoidDataset(voidBindings as MetadataBinding[]);
+  } catch {
+    // Graceful fallback: VoID query is optional
+  }
+
   return {
     iri: graphIRI,
     label: shortIRI(graphIRI),
@@ -365,6 +377,7 @@ async function introspectGraph(
     classes,
     labelPredicate,
     introspectedAt: new Date(),
+    voidMetadata,
   };
 }
 
