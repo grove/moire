@@ -23,6 +23,7 @@ export function EndpointManager() {
   const [sparqlUrl, setSparqlUrl] = useState("");
   const [authType, setAuthType] = useState<"none" | "basic" | "bearer">("none");
   const [credentials, setCredentials] = useState("");
+  const [overlayUrl, setOverlayUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -51,12 +52,14 @@ export function EndpointManager() {
         label,
         sparqlUrl,
         auth: authType !== "none" ? { type: authType, credentials } : undefined,
+        overlayUrl: overlayUrl.trim() || undefined,
       };
 
       // Detect capabilities + introspect server-side (avoids CORS and Node.js-only APIs)
       const { capabilities, summaries, labelPredicate } = await setupEndpoint(
         sparqlUrl,
         authType !== "none" ? { type: authType, credentials } : undefined,
+        overlayUrl.trim() || undefined,
       );
       config.capabilities = capabilities;
       config.labelPredicate = labelPredicate;
@@ -69,6 +72,7 @@ export function EndpointManager() {
       setSparqlUrl("");
       setAuthType("none");
       setCredentials("");
+      setOverlayUrl("");
       setShowForm(false);
 
       // Navigate to the new endpoint
@@ -159,6 +163,19 @@ export function EndpointManager() {
                 />
               </div>
             )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium" htmlFor="ep-overlay">Annotation Overlay URL <span className="font-normal text-muted-foreground">(optional)</span></label>
+              <Input
+                id="ep-overlay"
+                value={overlayUrl}
+                onChange={(e) => setOverlayUrl(e.target.value)}
+                placeholder="https://example.org/overlay.json"
+              />
+              <p className="text-xs text-muted-foreground">
+                A JSON file that customises predicate labels and hides internal predicates. Leave blank to use default annotations.
+              </p>
+            </div>
 
             {error && (
               <p className="text-sm text-destructive">{error}</p>

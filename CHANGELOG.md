@@ -7,6 +7,7 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 ## Table of Contents
 
 <!-- TOC start -->
+- [0.10.0 — Local Annotation Overlays](#0100--local-annotation-overlays)
 - [0.9.0 — pg-ripple Enhanced Features](#090--pg-ripple-enhanced-features)
 - [0.8.0 — VoID Dataset Metadata](#080--void-dataset-metadata)
 - [0.7.0 — SHACL Data Quality](#070--shacl-data-quality)
@@ -21,6 +22,80 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 - [0.2.0 — Breadcrumbs & Annotated Tooltips](#020--breadcrumbs--annotated-tooltips)
 - [0.1.0 — Predicate Roles & Smarter Ordering](#010--predicate-roles--smarter-ordering)
 <!-- TOC end -->
+
+---
+
+## 0.10.0 — Local Annotation Overlays
+
+Endpoint owners can now customise how predicates appear in Moire without
+modifying the underlying RDF data. If a knowledge graph uses cryptic internal
+identifiers for relationships, a small JSON configuration file — called an
+overlay — can give those relationships clear, human-readable labels. Technical
+users can reveal the raw names at any time using the new "Technical" toggle.
+
+### What you'll notice
+
+- **Overlay URL per endpoint.** When adding a SPARQL endpoint in the Endpoint
+  Manager, you can now supply an optional URL pointing to a JSON overlay file.
+  Moire fetches and validates the file on the server during connection setup, so
+  no CORS configuration is required.
+- **Predicate label and description overrides.** An overlay can supply a
+  human-readable label, inverse label, and description for any predicate IRI.
+  These take the highest precedence — they override vocabulary registry lookups,
+  graph-sourced RDFS/SKOS metadata, and heuristic labels.
+- **Hidden predicates.** Predicates marked `"hidden": true` in the overlay are
+  filtered out of the Relationships Browser by default. This is useful for
+  removing internal plumbing IRIs from the main navigation view.
+- **Role and group overrides.** An overlay can reassign the semantic role of a
+  predicate (e.g. reclassify something as `"structural"`) and assign it to a
+  named display group.
+- **"Technical view" toggle.** A small eye-icon button at the top of the
+  Relationships Browser switches to technical view. In this mode, all hidden
+  predicates become visible (marked with a red "hidden" badge), overlay-sourced
+  annotations are flagged with an amber "overlay" badge, and the raw predicate
+  IRI is shown below each row.
+- **Overlay validation.** Invalid overlay files — wrong JSON, wrong version,
+  non-boolean `hidden`, unrecognised role value — produce a clear error message
+  at load time. A validation failure during connection setup is surfaced as a
+  warning; it does not prevent the endpoint from being added.
+
+### Overlay format
+
+```json
+{
+  "version": 1,
+  "name": "My endpoint overlay",
+  "predicates": {
+    "http://example.org/research/legacyId": {
+      "label": "Legacy Record ID",
+      "description": "Internal identifier from the pre-migration system.",
+      "role": "structural",
+      "hidden": true
+    },
+    "http://example.org/research/affiliatedWith": {
+      "label": "Affiliated with",
+      "inverseLabel": "Affiliations",
+      "group": "Researcher relations"
+    }
+  },
+  "resources": {
+    "http://example.org/org/1": {
+      "label": "Research Institute",
+      "aliases": ["RI", "The Institute"]
+    }
+  }
+}
+```
+
+### Details
+
+- The overlay is fetched once, server-side, during endpoint setup. The annotated
+  predicate summaries are cached alongside the regular introspection data.
+- Overlay fields always win over all other annotation sources (vocabulary
+  registry, RDFS/SKOS metadata from the graph, SHACL shapes).
+- Endpoints without an overlay configured are completely unaffected.
+- The resource section of the overlay is stored and made available for future
+  use by entity detail components; it is not yet rendered in the UI.
 
 ---
 
