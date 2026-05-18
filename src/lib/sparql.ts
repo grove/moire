@@ -443,10 +443,47 @@ export function buildSearchQuery(
   isPgRipple: boolean = false,
 ): string {
   const escaped = escapeLiteral(query);
+  const lp = escapeIRI(labelPredicate);
 
-  const filterClause = isPgRipple
-    ? `FILTER(<http://pg-ripple.io/fn/fts>(?label, "${escaped}"))`
-    : `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${escaped}")))`;
+  // pg-ripple: full-text search across ALL text fields using pg:fts().
+  // The function matches any literal property of the entity against the query,
+  // so it covers labels, descriptions, abstracts, notes — not just labels.
+  if (isPgRipple) {
+    if (graphIRI && graphIRI !== "default") {
+      const g = escapeIRI(graphIRI);
+      return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT DISTINCT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        GRAPH ${g} {
+          ?entity ?_anyPred ?_text .
+          FILTER(isLiteral(?_text) && <http://pg-ripple.io/fn/fts>(?_text, "${escaped}"))
+        }
+      } LIMIT 20 }
+      OPTIONAL { GRAPH ${g} { ?entity ${lp} ?label } }
+      OPTIONAL { GRAPH ${g} { ?entity rdf:type ?type } }
+    }
+  `.trim();
+    }
+    return `
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+    SELECT DISTINCT ?entity ?label ?type WHERE {
+      { SELECT DISTINCT ?entity WHERE {
+        ?entity ?_anyPred ?_text .
+        FILTER(isLiteral(?_text) && <http://pg-ripple.io/fn/fts>(?_text, "${escaped}"))
+      } LIMIT 20 }
+      OPTIONAL { ?entity ${lp} ?label }
+      OPTIONAL { ?entity rdf:type ?type }
+    }
+  `.trim();
+  }
+
+  // Standard SPARQL: label-only substring match.
+  const filterClause = `FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${escaped}")))`;
   if (graphIRI && graphIRI !== "default") {
     const g = escapeIRI(graphIRI);
     return `
@@ -455,14 +492,14 @@ export function buildSearchQuery(
 
     SELECT ?entity ?label ?type WHERE {
       { SELECT DISTINCT ?entity ?label WHERE {
-        GRAPH ${g} { ?entity ${escapeIRI(labelPredicate)} ?label . ${filterClause} }
+        GRAPH ${g} { ?entity ${lp} ?label . ${filterClause} }
       } LIMIT 20 }
       OPTIONAL { GRAPH ${g} { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type } }
     }
   `.trim();
   }
   const corePattern = [
-    `?entity ${escapeIRI(labelPredicate)} ?label .`,
+    `?entity ${lp} ?label .`,
     filterClause,
     `OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }`,
   ].join("\n    ");

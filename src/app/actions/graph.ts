@@ -41,6 +41,10 @@ import {
   buildShaclViolationCheckQuery,
   buildVoidDatasetQuery,
   parseVoidDataset,
+  buildSimilarEntitiesQuery,
+  parseSimilarEntities,
+  buildPgRippleShaclViolationsQuery,
+  parsePgRippleShaclViolations,
 } from "@/lib/metadata-queries";
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
@@ -761,6 +765,65 @@ export async function fetchShaclViolatingEntities(
     return bindings.map((b) => b.entity?.value).filter(Boolean) as string[];
   } catch (err) {
     console.warn("[v0.7.0] SHACL violation check failed (graceful fallback):", err);
+    return [];
+  }
+}
+
+// ── v0.9.0 — pg-ripple: Semantic similarity ───────────────────
+
+/**
+ * Fetch a ranked list of semantically similar entities for the given resource
+ * using pg-ripple's vector index (`pg:similar()`).
+ *
+ * Only call this when `EndpointCapabilities.vectorSearch` is true.
+ * Gracefully returns an empty array on error or when the similarity index is
+ * not built for this dataset.
+ */
+export async function fetchSimilarEntities(
+  endpointUrl: string,
+  entityIRI: string,
+  graphIRI: string | null,
+  labelPredicate: string = "http://www.w3.org/2000/01/rdf-schema#label",
+  limit: number = 10,
+  auth?: EndpointConfig["auth"],
+): Promise<SearchResult[]> {
+  try {
+    const query = buildSimilarEntitiesQuery(entityIRI, graphIRI, labelPredicate, limit);
+    if (!query) return [];
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return parseSimilarEntities(bindings as MetadataBinding[]);
+  } catch (err) {
+    console.warn("[v0.9.0] Similar entities query failed (graceful fallback):", err);
+    return [];
+  }
+}
+
+// ── v0.9.0 — pg-ripple: Pre-computed SHACL violations ─────────
+
+/**
+ * Fetch pre-computed SHACL validation results for a specific entity from a
+ * pg-ripple endpoint.
+ *
+ * pg-ripple stores `sh:ValidationResult` instances in the graph. This function
+ * queries those results directly instead of computing violations from shapes.
+ *
+ * Only call this when `EndpointCapabilities.shaclValidation` is true AND the
+ * endpoint is pg-ripple (`isPgRipple = true`).
+ * Gracefully returns an empty array on error.
+ */
+export async function fetchPgRippleShaclViolations(
+  endpointUrl: string,
+  entityIRI: string,
+  graphIRI: string | null,
+  auth?: EndpointConfig["auth"],
+): Promise<import("@/lib/types").ShaclViolation[]> {
+  try {
+    const query = buildPgRippleShaclViolationsQuery(entityIRI, graphIRI);
+    if (!query) return [];
+    const bindings = await executeSparql(endpointUrl, query, auth);
+    return parsePgRippleShaclViolations(bindings as MetadataBinding[]);
+  } catch (err) {
+    console.warn("[v0.9.0] pg-ripple SHACL violations query failed (graceful fallback):", err);
     return [];
   }
 }

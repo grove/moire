@@ -8,10 +8,10 @@ import { PredicateTable } from "./PredicateTable";
 import { shortIRI } from "@/lib/utils";
 import { useNavigationStore } from "@/stores/navigation-store";
 import { useEndpointStore } from "@/stores/endpoint-store";
-import { fetchResourceAnnotations, fetchEntityPredicates, fetchShaclShapes } from "@/app/actions/graph";
+import { fetchResourceAnnotations, fetchEntityPredicates, fetchShaclShapes, fetchSimilarEntities, fetchPgRippleShaclViolations } from "@/app/actions/graph";
 import { computeShaclViolations } from "@/lib/metadata-queries";
-import type { EntityNode, ClassSummary, ResourceAnnotation } from "@/lib/types";
-import { ChevronRight, Calendar, ExternalLink, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import type { EntityNode, ClassSummary, ResourceAnnotation, SearchResult } from "@/lib/types";
+import { ChevronRight, Calendar, ExternalLink, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 
 interface Props {
   entity: EntityNode;
@@ -57,6 +57,9 @@ export function EntityDetail({ entity }: Props) {
   const getIntrospection = useEndpointStore((s) => s.getIntrospection);
 
   const endpoint = frame.endpointId ? getEndpoint(frame.endpointId) : undefined;
+  const isPgRipple = endpoint?.capabilities?.isPgRipple ?? false;
+  const hasVectorSearch = endpoint?.capabilities?.vectorSearch ?? false;
+  const hasShaclValidation = endpoint?.capabilities?.shaclValidation ?? false;
 
   // Type hierarchy from cached graph summary — no extra query needed
   const graphs = getIntrospection(frame.endpointId);
@@ -81,9 +84,9 @@ export function EntityDetail({ entity }: Props) {
     { revalidateOnFocus: false },
   );
 
-  // v0.7.0 — SHACL shapes for entity type (on-demand, cached by SWR)
+  // v0.7.0 — SHACL shapes for entity type (only for non-pg-ripple; pg-ripple uses pre-computed results)
   const { data: shaclShapes = [] } = useSWR(
-    endpoint && entity.type
+    endpoint && entity.type && !isPgRipple
       ? `shacl-shapes:${frame.endpointId}:${frame.graphIRI}:${entity.type}`
       : null,
     async () => {
@@ -106,12 +109,52 @@ export function EntityDetail({ entity }: Props) {
     { revalidateOnFocus: false },
   );
 
-  // Derive SHACL violations client-side (no extra SPARQL needed)
+  // v0.9.0 — pg-ripple: pre-computed SHACL violations (only for pg-ripple with shaclValidation)
+  const { data: pgRippleViolations = [] } = useSWR(
+    isPgRipple && hasShaclValidation && endpoint
+      ? `pg-ripple-shacl:${frame.endpointId}:${frame.graphIRI}:${entity.iri}`
+      : null,
+    async () => {
+      if (!endpoint) return [];
+      return fetchPgRippleShaclViolations(
+        endpoint.sparqlUrl,
+        entity.iri,
+        frame.graphIRI,
+        endpoint.auth,
+      );
+    },
+    { revalidateOnFocus: false },
+  );
+
+  // Derive SHACL violations: use pg-ripple pre-computed for pg-ripple, computed locally otherwise
   const entityPredicateIRIs = predicateRows.map((r) => r.predicate);
-  const shaclViolations = computeShaclViolations(shaclShapes, entityPredicateIRIs);
+  const shaclViolations = isPgRipple
+    ? pgRippleViolations
+    : computeShaclViolations(shaclShapes, entityPredicateIRIs);
+
+  // v0.9.0 — pg-ripple: semantically similar entities (only when vector index is available)
+  const { data: similarEntities } = useSWR<SearchResult[]>(
+    isPgRipple && hasVectorSearch && endpoint
+      ? `similar:${frame.endpointId}:${frame.graphIRI}:${entity.iri}`
+      : null,
+    async () => {
+      if (!endpoint) return [];
+      return fetchSimilarEntities(
+        endpoint.sparqlUrl,
+        entity.iri,
+        frame.graphIRI,
+        endpoint.labelPredicate,
+        10,
+        endpoint.auth,
+      );
+    },
+    { revalidateOnFocus: false },
+  );
 
   // Collapsible state for the SHACL panel
   const [shaclExpanded, setShaclExpanded] = useState(false);
+  // Navigation helper for similar entities
+  const pushFocus = useNavigationStore((s) => s.pushFocus);
 
   return (
     <Card className="border-border/60">
@@ -306,6 +349,34 @@ export function EntityDetail({ entity }: Props) {
       <CardContent>
         <PredicateTable entityIRI={entity.iri} />
       </CardContent>
+
+      {/* v0.9.0 — pg-ripple: Semantically similar entities (only when vector index built) */}
+      {isPgRipple && similarEntities && similarEntities.length > 0 && (
+        <CardContent data-testid="similar-entities">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" aria-hidden />
+            Semantically similar
+          </p>
+          <ul className="space-y-1" role="list" aria-label="Semantically similar entities">
+            {similarEntities.map((result) => (
+              <li key={result.iri}>
+                <button
+                  type="button"
+                  className="w-full text-left flex items-center justify-between gap-2 rounded px-2 py-1 text-sm hover:bg-muted transition-colors"
+                  onClick={() => pushFocus(result.iri)}
+                >
+                  <span className="font-medium truncate">{result.label}</span>
+                  {result.typeLabel && (
+                    <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                      {result.typeLabel}
+                    </Badge>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      )}
     </Card>
   );
 }

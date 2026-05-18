@@ -179,6 +179,32 @@ describe("buildSearchQuery", () => {
     expect(query).toContain("GRAPH");
     expect(query).toContain("http://example.org/g");
   });
+
+  it("uses CONTAINS filter for standard SPARQL endpoints", () => {
+    const query = buildSearchQuery(null, "knowledge graph", undefined, false);
+    expect(query).toContain("CONTAINS");
+    expect(query).not.toContain("pg-ripple.io/fn/fts");
+  });
+
+  it("uses pg:fts() across all text fields for pg-ripple endpoints", () => {
+    const query = buildSearchQuery(null, "knowledge graph", undefined, true);
+    expect(query).toContain("pg-ripple.io/fn/fts");
+    // Should search any predicate, not just the label predicate
+    expect(query).toContain("?_anyPred");
+    expect(query).not.toContain("CONTAINS");
+  });
+
+  it("pg-ripple FTS includes GRAPH clause when graphIRI is provided", () => {
+    const query = buildSearchQuery("http://example.org/g", "knowledge graph", undefined, true);
+    expect(query).toContain("GRAPH");
+    expect(query).toContain("pg-ripple.io/fn/fts");
+  });
+
+  it("pg-ripple FTS escapes quotes in the search term", () => {
+    const query = buildSearchQuery(null, 'say "hello"', undefined, true);
+    expect(query).toContain('\\"hello\\"');
+    expect(query).toContain("pg-ripple.io/fn/fts");
+  });
 });
 
 // ── buildPredicateObjectsQuery ─────────────────────────────────

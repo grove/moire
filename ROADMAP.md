@@ -358,16 +358,16 @@ Try filtering researchers first, or follow a different path.
 
 ### Changes
 
-- Full-text search (`pg:fts()`) in search palette, replacing label-only matching.
-- "Semantically similar entities" section in entity detail (when similarity index built).
-- Richer SHACL data quality as a first-class panel (pg-ripple provides pre-computed results).
+- [x] Full-text search (`pg:fts()`) in search palette, replacing label-only matching.
+- [x] "Semantically similar entities" section in entity detail (when similarity index built).
+- [x] Richer SHACL data quality as a first-class panel (pg-ripple provides pre-computed results).
 
 All features activate automatically on pg-ripple detection; no user configuration required.
 
 ### Acceptance criteria
-- Features appear only on pg-ripple endpoints.
-- Standard SPARQL endpoints unaffected.
-- No increase in query latency on non-pg-ripple endpoints.
+- [x] Features appear only on pg-ripple endpoints.
+- [x] Standard SPARQL endpoints unaffected.
+- [x] No increase in query latency on non-pg-ripple endpoints.
 
 ---
 

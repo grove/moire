@@ -13,6 +13,10 @@ import {
   computeShaclViolations,
   buildVoidDatasetQuery,
   parseVoidDataset,
+  buildSimilarEntitiesQuery,
+  parseSimilarEntities,
+  buildPgRippleShaclViolationsQuery,
+  parsePgRippleShaclViolations,
 } from "./metadata-queries";
 import type { PredicateSummary } from "./types";
 
@@ -926,5 +930,199 @@ describe("parseVoidDataset", () => {
     ];
     const result = parseVoidDataset(bindings);
     expect(result?.vocabularies).toHaveLength(1);
+  });
+});
+
+// ── v0.9.0 — buildSimilarEntitiesQuery ────────────────────────
+
+const ENTITY_IRI = "http://example.org/entity/1";
+
+describe("buildSimilarEntitiesQuery", () => {
+  it("returns empty string for invalid entity IRI", () => {
+    const query = buildSimilarEntitiesQuery("not a valid IRI", null);
+    expect(query).toBe("");
+  });
+
+  it("contains pg:similar() function IRI", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null);
+    expect(query).toContain("pg-ripple.io/fn/similar");
+  });
+
+  it("includes the entity IRI in the VALUES/pattern", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null);
+    expect(query).toContain(ENTITY_IRI);
+  });
+
+  it("excludes the focus entity from results with FILTER", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null);
+    expect(query).toContain("FILTER");
+    expect(query).toContain("!=");
+  });
+
+  it("orders results by score descending", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null);
+    expect(query).toContain("ORDER BY DESC(?score)");
+  });
+
+  it("respects the limit parameter", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null, undefined, 5);
+    expect(query).toContain("LIMIT 5");
+  });
+
+  it("includes GRAPH clause when graphIRI is provided", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, GRAPH_IRI);
+    expect(query).toContain("GRAPH");
+    expect(query).toContain(GRAPH_IRI);
+  });
+
+  it("omits GRAPH clause when graphIRI is null", () => {
+    const query = buildSimilarEntitiesQuery(ENTITY_IRI, null);
+    expect(query).not.toContain("GRAPH");
+  });
+});
+
+// ── v0.9.0 — parseSimilarEntities ─────────────────────────────
+
+describe("parseSimilarEntities", () => {
+  it("returns empty array for empty bindings", () => {
+    expect(parseSimilarEntities([])).toEqual([]);
+  });
+
+  it("maps bindings to SearchResult objects", () => {
+    const bindings = [
+      {
+        similar: { type: "uri", value: "http://example.org/entity/2" },
+        label: { type: "literal", value: "Another Entity" },
+        type: { type: "uri", value: "http://example.org/Type" },
+        score: { type: "literal", value: "0.95" },
+      },
+    ];
+    const results = parseSimilarEntities(bindings);
+    expect(results).toHaveLength(1);
+    expect(results[0].iri).toBe("http://example.org/entity/2");
+    expect(results[0].label).toBe("Another Entity");
+    expect(results[0].type).toBe("http://example.org/Type");
+  });
+
+  it("falls back to IRI local name when label is absent", () => {
+    const bindings = [
+      {
+        similar: { type: "uri", value: "http://example.org/entity/3" },
+        score: { type: "literal", value: "0.8" },
+      },
+    ];
+    const results = parseSimilarEntities(bindings);
+    expect(results[0].label).toBe("3");
+  });
+
+  it("deduplicates results with the same IRI", () => {
+    const iri = "http://example.org/entity/4";
+    const bindings = [
+      { similar: { type: "uri", value: iri }, score: { type: "literal", value: "0.9" } },
+      { similar: { type: "uri", value: iri }, score: { type: "literal", value: "0.9" } },
+    ];
+    expect(parseSimilarEntities(bindings)).toHaveLength(1);
+  });
+});
+
+// ── v0.9.0 — buildPgRippleShaclViolationsQuery ────────────────
+
+describe("buildPgRippleShaclViolationsQuery", () => {
+  it("returns empty string for invalid entity IRI", () => {
+    const query = buildPgRippleShaclViolationsQuery("not a valid IRI", null);
+    expect(query).toBe("");
+  });
+
+  it("references sh:ValidationResult", () => {
+    const query = buildPgRippleShaclViolationsQuery(ENTITY_IRI, null);
+    expect(query).toContain("sh:ValidationResult");
+  });
+
+  it("uses sh:focusNode to target the specific entity", () => {
+    const query = buildPgRippleShaclViolationsQuery(ENTITY_IRI, null);
+    expect(query).toContain("sh:focusNode");
+    expect(query).toContain(ENTITY_IRI);
+  });
+
+  it("selects message, severity and path", () => {
+    const query = buildPgRippleShaclViolationsQuery(ENTITY_IRI, null);
+    expect(query).toContain("?message");
+    expect(query).toContain("?severity");
+    expect(query).toContain("?path");
+  });
+
+  it("includes GRAPH clause when graphIRI is provided", () => {
+    const query = buildPgRippleShaclViolationsQuery(ENTITY_IRI, GRAPH_IRI);
+    expect(query).toContain("GRAPH");
+    expect(query).toContain(GRAPH_IRI);
+  });
+
+  it("omits GRAPH clause when graphIRI is null", () => {
+    const query = buildPgRippleShaclViolationsQuery(ENTITY_IRI, null);
+    expect(query).not.toContain("GRAPH");
+  });
+});
+
+// ── v0.9.0 — parsePgRippleShaclViolations ─────────────────────
+
+describe("parsePgRippleShaclViolations", () => {
+  it("returns empty array for empty bindings", () => {
+    expect(parsePgRippleShaclViolations([])).toEqual([]);
+  });
+
+  it("maps sh:Violation severity to 'Violation'", () => {
+    const bindings = [
+      {
+        message: { type: "literal", value: "Missing required field" },
+        severity: { type: "uri", value: "http://www.w3.org/ns/shacl#Violation" },
+        path: { type: "uri", value: "http://example.org/requiredField" },
+      },
+    ];
+    const result = parsePgRippleShaclViolations(bindings);
+    expect(result[0].severity).toBe("Violation");
+    expect(result[0].message).toBe("Missing required field");
+    expect(result[0].path).toBe("http://example.org/requiredField");
+  });
+
+  it("maps sh:Warning severity to 'Warning'", () => {
+    const bindings = [
+      {
+        message: { type: "literal", value: "Recommended field missing" },
+        severity: { type: "uri", value: "http://www.w3.org/ns/shacl#Warning" },
+      },
+    ];
+    const result = parsePgRippleShaclViolations(bindings);
+    expect(result[0].severity).toBe("Warning");
+  });
+
+  it("maps sh:Info severity to 'Info'", () => {
+    const bindings = [
+      {
+        message: { type: "literal", value: "Optional field absent" },
+        severity: { type: "uri", value: "http://www.w3.org/ns/shacl#Info" },
+      },
+    ];
+    const result = parsePgRippleShaclViolations(bindings);
+    expect(result[0].severity).toBe("Info");
+  });
+
+  it("defaults to 'Warning' for unknown severity IRIs", () => {
+    const bindings = [
+      {
+        message: { type: "literal", value: "Unknown severity" },
+        severity: { type: "uri", value: "http://example.org/UnknownSeverity" },
+      },
+    ];
+    const result = parsePgRippleShaclViolations(bindings);
+    expect(result[0].severity).toBe("Warning");
+  });
+
+  it("skips rows without a message", () => {
+    const bindings = [
+      {
+        severity: { type: "uri", value: "http://www.w3.org/ns/shacl#Violation" },
+      },
+    ];
+    expect(parsePgRippleShaclViolations(bindings)).toHaveLength(0);
   });
 });
