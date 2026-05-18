@@ -7,6 +7,7 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 ## Table of Contents
 
 <!-- TOC start -->
+- [0.11.0 — Overlay Documentation & Examples](#0110--overlay-documentation--examples)
 - [0.10.0 — Local Annotation Overlays](#0100--local-annotation-overlays)
 - [0.9.0 — pg-ripple Enhanced Features](#090--pg-ripple-enhanced-features)
 - [0.8.0 — VoID Dataset Metadata](#080--void-dataset-metadata)
@@ -22,6 +23,47 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 - [0.2.0 — Breadcrumbs & Annotated Tooltips](#020--breadcrumbs--annotated-tooltips)
 - [0.1.0 — Predicate Roles & Smarter Ordering](#010--predicate-roles--smarter-ordering)
 <!-- TOC end -->
+
+---
+
+## 0.11.0 — Overlay Documentation & Examples
+
+Endpoint owners can now self-serve overlay creation from documentation and
+working templates. No prior experience with the overlay format is needed to
+get started.
+
+### What's new in the documentation
+
+- **[Overlay schema reference](docs/advanced/overlay-schema.md)** — a complete
+  field-by-field reference for the annotation overlay JSON format, including all
+  nine predicate roles, every supported field, validation rules, and a full
+  worked example.
+- **Three ready-to-use overlay templates** in `docs/examples/`:
+  - [`hide-structural-predicates.json`](docs/examples/hide-structural-predicates.json)
+    — hides the most common OWL and RDFS schema predicates from normal view.
+  - [`rename-internal-ids.json`](docs/examples/rename-internal-ids.json) — gives
+    human-readable labels to common internal-system predicates and hides the
+    most obscure ones.
+  - [`add-descriptions-for-sparse-graphs.json`](docs/examples/add-descriptions-for-sparse-graphs.json)
+    — adds plain-English labels, descriptions, and display groups for a typical
+    research graph with sparse built-in metadata.
+- **[Configure an annotation overlay](docs/how-to/configure-overlay.md)** _(new
+  how-to guide)_ — step-by-step instructions for creating an overlay file,
+  registering it in the Endpoint Manager, and verifying it is applied correctly.
+  Includes a troubleshooting section for the most common errors.
+- **[Predicate roles reference](docs/reference/predicate-roles.md)** _(new
+  reference page)_ — explains the nine roles Moire assigns to predicates
+  (relational, classifying, labelling, descriptive, temporal, numeric,
+  provenance, media, structural), how each role affects the Relationships
+  Browser and facet panel, and how to override a role via an overlay.
+- **[Data quality indicators](docs/reference/data-quality.md)** _(new reference
+  page)_ — explains the three SHACL severity levels (Info, Warning, Violation),
+  where badges appear in the interface, how to read a violation message, and
+  what to do when you see one.
+- **[Provenance](docs/concepts/provenance.md)** _(new concept page)_ — explains
+  what provenance information Moire shows, which predicates it recognises
+  (PROV-O and Dublin Core), where provenance appears in entity detail, and how
+  to use provenance as a navigation path.
 
 ---
 

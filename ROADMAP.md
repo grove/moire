@@ -424,9 +424,9 @@ Example overlay:
 
 ### Changes
 
-- Overlay schema reference in developer docs.
-- Three example overlay files: "Hide structural predicates", "Rename internal IDs", "Add descriptions for sparse graphs".
-- User-facing docs updated: predicate roles, data quality indicators, provenance, overlay configuration.
+- [x] Overlay schema reference in developer docs.
+- [x] Three example overlay files: "Hide structural predicates", "Rename internal IDs", "Add descriptions for sparse graphs".
+- [x] User-facing docs updated: predicate roles, data quality indicators, provenance, overlay configuration.
 
 ---
 

@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "name": "Add descriptions for sparse graphs",
+  "predicates": {
+    "http://example.org/research/affiliatedWith": {
+      "label": "Affiliated with",
+      "inverseLabel": "Affiliations",
+      "description": "Links a researcher or student to the institution where they hold a formal position or enrollment.",
+      "role": "relational",
+      "group": "People and organisations",
+      "priority": 1
+    },
+    "http://example.org/research/supervisedBy": {
+      "label": "Supervised by",
+      "inverseLabel": "Supervised researchers",
+      "description": "Identifies the senior researcher or academic responsible for supervising this person's work.",
+      "role": "relational",
+      "group": "People and organisations",
+      "priority": 2
+    },
+    "http://example.org/research/locatedIn": {
+      "label": "Located in",
+      "inverseLabel": "Contains",
+      "description": "The city, region, or country where this organisation or facility is based.",
+      "role": "relational",
+      "group": "Geography",
+      "priority": 3
+    },
+    "http://example.org/research/fundedBy": {
+      "label": "Funded by",
+      "inverseLabel": "Funded projects",
+      "description": "The public or private body that provides financial support for this project or activity.",
+      "role": "relational",
+      "group": "Project relations",
+      "priority": 4
+    },
+    "http://example.org/research/publishedIn": {
+      "label": "Published in",
+      "inverseLabel": "Publications",
+      "description": "The journal, conference, or book series where this work appeared.",
+      "role": "relational",
+      "group": "Publications",
+      "priority": 5
+    },
+    "http://example.org/research/authorOf": {
+      "label": "Author of",
+      "inverseLabel": "Authors",
+      "description": "Links a person to a publication, dataset, or software artefact they created.",
+      "role": "relational",
+      "group": "Publications",
+      "priority": 6
+    },
+    "http://example.org/research/researchArea": {
+      "label": "Research area",
+      "inverseLabel": "Researchers in this area",
+      "description": "The primary scientific or scholarly domain this person or project belongs to.",
+      "role": "classifying",
+      "group": "Classification",
+      "priority": 7
+    },
+    "http://example.org/research/keyword": {
+      "label": "Keyword",
+      "description": "A free-text keyword or controlled-vocabulary term describing the subject matter.",
+      "role": "classifying",
+      "group": "Classification"
+    },
+    "http://example.org/research/startDate": {
+      "label": "Start date",
+      "description": "Date when this project, role, or activity began.",
+      "role": "temporal"
+    },
+    "http://example.org/research/endDate": {
+      "label": "End date",
+      "description": "Date when this project, role, or activity concluded (if it has ended).",
+      "role": "temporal"
+    },
+    "http://example.org/research/budget": {
+      "label": "Budget (EUR)",
+      "description": "Total approved budget in euros.",
+      "role": "numeric"
+    },
+    "http://example.org/research/homepage": {
+      "label": "Project homepage",
+      "description": "Official web page for this project or organisation.",
+      "role": "media"
+    }
+  },
+  "resources": {
+    "http://example.org/org/research-council": {
+      "label": "National Research Council",
+      "description": "The primary public body responsible for funding and coordinating national research programmes.",
+      "aliases": ["NRC", "Research Council"]
+    },
+    "http://example.org/area/computer-science": {
+      "label": "Computer Science",
+      "description": "The study of computation, algorithms, data structures, and software systems.",
+      "aliases": ["CS", "Informatics"]
+    }
+  }
+}

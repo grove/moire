@@ -12,3 +12,4 @@ Each concept is explained with an everyday analogy before any technical term is 
 - [Sets](sets.md) — working with groups rather than individuals: the core of what makes Moire distinctive.
 - [The Lens](the-lens.md) — the combination of all active filters, and how changing the lens changes what you see without changing the data.
 - [Layers](layers.md) — conceptual distance from a focus entity, and how Moire uses it to control the level of detail shown.
+- [Provenance](provenance.md) — where entities and facts came from, and how Moire surfaces attribution and source information.

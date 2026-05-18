@@ -27,6 +27,7 @@
     - [Sets](concepts/sets.md)
     - [The Lens](concepts/the-lens.md)
     - [Layers](concepts/layers.md)
+    - [Provenance](concepts/provenance.md)
 - How-to guides
     - [Overview](how-to/index.md)
     - [The four navigation views](how-to/four-navigation-views.md)
@@ -37,6 +38,7 @@
     - [Search with ⌘K](how-to/search.md)
     - [Use Back and Forward](how-to/back-and-forward.md)
     - [Read the context header](how-to/read-context-header.md)
+    - [Configure an annotation overlay](how-to/configure-overlay.md)
 - Reference
     - [Overview](reference/index.md)
     - [Glossary](reference/glossary.md)
@@ -44,9 +46,12 @@
     - [Understanding facet counts](reference/facet-counts.md)
     - [Empty states explained](reference/empty-states.md)
     - [Relationships Browser](reference/relationships-browser.md)
+    - [Predicate roles](reference/predicate-roles.md)
+    - [Data quality indicators](reference/data-quality.md)
 - Advanced
     - [Overview](advanced/index.md)
     - [Database types](advanced/database-types.md)
     - [Enhanced features with pg-ripple](advanced/pg-ripple-features.md)
     - [Multi-hop exploration strategies](advanced/multi-hop-strategies.md)
     - [Tips for large graphs](advanced/large-graphs.md)
+    - [Overlay schema reference](advanced/overlay-schema.md)
