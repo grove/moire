@@ -14,3 +14,4 @@ If you want to understand *why* things work the way they do, read the [Concepts]
 - [Search with ⌘K](search.md) — using the keyboard search palette to jump directly to an entity or open a pre-filtered set.
 - [Use Back and Forward](back-and-forward.md) — navigating your history and understanding what counts as a navigation step.
 - [Read the context header](read-context-header.md) — using the prose header to understand where you are and how you got there.
+- [Configure an annotation overlay](configure-overlay.md) — give predicates plain-English labels and hide internal plumbing from the browsing interface.

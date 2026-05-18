@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "name": "Rename internal IDs",
+  "predicates": {
+    "http://example.org/internal/legacyId": {
+      "label": "Legacy Record ID",
+      "description": "Internal identifier from the pre-migration system. Not meaningful to end users.",
+      "role": "structural",
+      "hidden": true
+    },
+    "http://example.org/internal/ingestBatch": {
+      "label": "Import batch",
+      "description": "Identifies the data import job that created this record.",
+      "role": "provenance",
+      "hidden": true
+    },
+    "http://example.org/internal/ingestTimestamp": {
+      "label": "Imported at",
+      "description": "Date and time when this record was first loaded into the system.",
+      "role": "temporal",
+      "priority": 99
+    },
+    "http://example.org/internal/sourceSystemRef": {
+      "label": "Source reference",
+      "description": "Reference identifier in the originating source system.",
+      "role": "provenance",
+      "hidden": true
+    },
+    "http://example.org/internal/deduplicationKey": {
+      "label": "Deduplication key",
+      "description": "Internal hash used during deduplication. Not a stable identifier.",
+      "role": "structural",
+      "hidden": true
+    },
+    "http://example.org/internal/validFrom": {
+      "label": "Valid from",
+      "description": "Date from which this record is considered current.",
+      "role": "temporal"
+    },
+    "http://example.org/internal/validTo": {
+      "label": "Valid to",
+      "description": "Date after which this record is superseded.",
+      "role": "temporal"
+    },
+    "http://example.org/internal/recordStatus": {
+      "label": "Record status",
+      "description": "Current status in the master data workflow: draft, published, or archived.",
+      "role": "classifying"
+    }
+  }
+}

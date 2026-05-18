@@ -8,3 +8,4 @@ These pages are for experienced users, administrators, and researchers who want 
 - [Enhanced features with pg-ripple](pg-ripple-features.md) — full-text search, inference, semantic similarity, and data quality features that activate automatically when connected to a pg-ripple endpoint.
 - [Multi-hop exploration strategies](multi-hop-strategies.md) — practical techniques for navigating large, complex graphs with many relationships and deep hierarchies.
 - [Working with large graphs](large-graphs.md) — tips for staying productive when a graph contains millions of entities.
+- [Overlay schema reference](overlay-schema.md) — complete reference for every field in the annotation overlay JSON format.

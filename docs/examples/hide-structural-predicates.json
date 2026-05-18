@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "name": "Hide structural predicates",
+  "predicates": {
+    "http://www.w3.org/2002/07/owl#sameAs": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL identity link — same real-world entity represented by two IRIs."
+    },
+    "http://www.w3.org/2002/07/owl#equivalentClass": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL class equivalence — two class IRIs denoting the same concept."
+    },
+    "http://www.w3.org/2002/07/owl#equivalentProperty": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL property equivalence — two predicate IRIs with the same meaning."
+    },
+    "http://www.w3.org/2000/01/rdf-schema#subClassOf": {
+      "role": "structural",
+      "hidden": true,
+      "description": "RDFS class hierarchy — sub-class relationship used for inference."
+    },
+    "http://www.w3.org/2000/01/rdf-schema#subPropertyOf": {
+      "role": "structural",
+      "hidden": true,
+      "description": "RDFS property hierarchy — sub-property relationship used for inference."
+    },
+    "http://www.w3.org/2000/01/rdf-schema#domain": {
+      "role": "structural",
+      "hidden": true,
+      "description": "RDFS schema constraint — the expected subject type of this property."
+    },
+    "http://www.w3.org/2000/01/rdf-schema#range": {
+      "role": "structural",
+      "hidden": true,
+      "description": "RDFS schema constraint — the expected object type or datatype of this property."
+    },
+    "http://www.w3.org/2000/01/rdf-schema#isDefinedBy": {
+      "role": "structural",
+      "hidden": true,
+      "description": "Link to the ontology or specification that defines this term."
+    },
+    "http://www.w3.org/2002/07/owl#disjointWith": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL disjointness — two classes share no members."
+    },
+    "http://www.w3.org/2002/07/owl#inverseOf": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL inverse property — the inverse direction of another predicate."
+    },
+    "http://www.w3.org/2002/07/owl#onProperty": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL restriction reference — part of an OWL property restriction axiom."
+    },
+    "http://www.w3.org/2002/07/owl#allValuesFrom": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL universal restriction — all values must be of the specified class."
+    },
+    "http://www.w3.org/2002/07/owl#someValuesFrom": {
+      "role": "structural",
+      "hidden": true,
+      "description": "OWL existential restriction — at least one value must be of the specified class."
+    }
+  }
+}
