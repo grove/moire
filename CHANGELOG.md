@@ -7,6 +7,7 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 ## Table of Contents
 
 <!-- TOC start -->
+- [0.9.0 — pg-ripple Enhanced Features](#090--pg-ripple-enhanced-features)
 - [0.8.0 — VoID Dataset Metadata](#080--void-dataset-metadata)
 - [0.7.0 — SHACL Data Quality](#070--shacl-data-quality)
 - [0.6.0 — Rich Entity Detail Annotations](#060--rich-entity-detail-annotations)
@@ -20,6 +21,45 @@ For future plans and upcoming features, see [ROADMAP.md](ROADMAP.md).
 - [0.2.0 — Breadcrumbs & Annotated Tooltips](#020--breadcrumbs--annotated-tooltips)
 - [0.1.0 — Predicate Roles & Smarter Ordering](#010--predicate-roles--smarter-ordering)
 <!-- TOC end -->
+
+---
+
+## 0.9.0 — pg-ripple Enhanced Features
+
+When connected to a pg-ripple endpoint, Moire now activates a set of enhanced
+features that go beyond what standard SPARQL endpoints can offer. Everything
+activates automatically based on what the endpoint supports — no configuration
+required.
+
+### What you'll notice *(pg-ripple graphs only)*
+
+- **Full-text search.** The search palette (⌘K) now searches the full text of
+  every string field — labels, descriptions, abstracts, notes — using
+  pg-ripple's built-in `pg:fts()` index. On standard SPARQL endpoints the
+  search is unchanged (label-only substring match).
+- **Semantically similar entities.** When browsing an individual entity, a
+  "Semantically similar" section appears at the bottom of the page — a ranked
+  list of entities whose overall description in the graph is similar to the
+  current one, even if they are not directly connected. Clicking any item
+  navigates to that entity. This section only appears when the pg-ripple
+  dataset has been indexed for similarity.
+- **Richer data quality panel.** pg-ripple computes and stores SHACL validation
+  results directly in the graph. When violations exist for the current entity,
+  Moire reads the pre-computed results instead of deriving them locally from
+  shapes. The collapsible "Data Quality" panel on the entity detail page shows
+  the same violations as before, now sourced directly from pg-ripple's
+  validation engine.
+
+### Details
+
+- Standard SPARQL endpoints are completely unaffected — no new queries, no
+  change in behaviour, no latency increase.
+- The similar-entities section is absent when the similarity index has not been
+  built for a dataset; no error or empty box is shown.
+- The pg-ripple SHACL panel degrades gracefully: if the violations query fails
+  or returns nothing, no panel is shown.
+- All three features are covered by unit tests (query builder + parser) and
+  integration E2E tests against a mock pg-ripple server.
 
 ---
 

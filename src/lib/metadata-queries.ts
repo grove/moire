@@ -614,3 +614,158 @@ export function parseVoidDataset(bindings: MetadataBinding[]): VoidDataset | und
     exampleResources: exampleResources.size > 0 ? Array.from(exampleResources) : undefined,
   };
 }
+
+// ── v0.9.0 — pg-ripple: Semantic similarity query ─────────────────────────────
+
+import type { SearchResult } from "./types";
+
+/**
+ * Build a SPARQL SELECT query that returns entities semantically similar to a
+ * given resource using pg-ripple's vector index (`pg:similar()`).
+ *
+ * Only executed when `EndpointCapabilities.vectorSearch` is true.
+ * Returns "" for invalid resource IRIs.
+ *
+ * @param entityIRI     - The IRI of the entity to find similar entities for.
+ * @param graphIRI      - Named graph IRI, or null for the default graph.
+ * @param labelPredicate - IRI of the predicate used to fetch entity labels.
+ * @param limit         - Maximum number of similar entities to return.
+ */
+export function buildSimilarEntitiesQuery(
+  entityIRI: string,
+  graphIRI: string | null,
+  labelPredicate: string = "http://www.w3.org/2000/01/rdf-schema#label",
+  limit: number = 10,
+): string {
+  if (!isValidIRI(entityIRI)) return "";
+  const lp = `<${labelPredicate}>`;
+  const entity = `<${entityIRI}>`;
+  const similarFn = `<http://pg-ripple.io/fn/similar>`;
+
+  if (graphIRI && graphIRI !== "default") {
+    const g = `<${graphIRI}>`;
+    return `
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?similar ?label ?type ?score WHERE {
+  { SELECT ?similar ?score WHERE {
+    GRAPH ${g} { ?similar ${similarFn} ${entity} ?score . }
+    FILTER(?similar != ${entity})
+  } ORDER BY DESC(?score) LIMIT ${limit} }
+  OPTIONAL { GRAPH ${g} { ?similar ${lp} ?label } }
+  OPTIONAL { GRAPH ${g} { ?similar rdf:type ?type } }
+}
+`.trim();
+  }
+
+  return `
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?similar ?label ?type ?score WHERE {
+  { SELECT ?similar ?score WHERE {
+    ?similar ${similarFn} ${entity} ?score .
+    FILTER(?similar != ${entity})
+  } ORDER BY DESC(?score) LIMIT ${limit} }
+  OPTIONAL { ?similar ${lp} ?label }
+  OPTIONAL { ?similar rdf:type ?type }
+}
+`.trim();
+}
+
+/**
+ * Parse SPARQL bindings from a similar-entities query into {@link SearchResult} objects.
+ */
+export function parseSimilarEntities(bindings: MetadataBinding[]): SearchResult[] {
+  const seen = new Map<string, SearchResult>();
+  for (const row of bindings) {
+    const iri = row.similar?.value;
+    if (!iri || seen.has(iri)) continue;
+    seen.set(iri, {
+      iri,
+      label: row.label?.value ?? iri.split(/[#/]/).pop() ?? iri,
+      type: row.type?.value,
+      typeLabel: row.type?.value ? (row.type.value.split(/[#/]/).pop() ?? row.type.value) : undefined,
+    });
+  }
+  return Array.from(seen.values());
+}
+
+// ── v0.9.0 — pg-ripple: Pre-computed SHACL violations query ──────────────────
+
+/**
+ * Build a SPARQL SELECT query that retrieves pre-computed SHACL violations from
+ * a pg-ripple endpoint for a specific entity.
+ *
+ * pg-ripple stores SHACL validation results as `sh:ValidationResult` instances.
+ * This query fetches violation message, severity, and affected predicate path.
+ *
+ * Returns "" for invalid entity IRIs.
+ *
+ * @param entityIRI - The IRI of the entity to check violations for.
+ * @param graphIRI  - Named graph IRI, or null for the default graph.
+ */
+export function buildPgRippleShaclViolationsQuery(
+  entityIRI: string,
+  graphIRI: string | null,
+): string {
+  if (!isValidIRI(entityIRI)) return "";
+  const entity = `<${entityIRI}>`;
+
+  if (graphIRI && graphIRI !== "default") {
+    const g = `<${graphIRI}>`;
+    return `
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?message ?severity ?path WHERE {
+  GRAPH ${g} {
+    ?result a sh:ValidationResult ;
+            sh:focusNode ${entity} ;
+            sh:resultMessage ?message ;
+            sh:resultSeverity ?severity .
+    OPTIONAL { ?result sh:resultPath ?path }
+  }
+}
+`.trim();
+  }
+
+  return `
+PREFIX sh:   <http://www.w3.org/ns/shacl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?message ?severity ?path WHERE {
+  ?result a sh:ValidationResult ;
+          sh:focusNode ${entity} ;
+          sh:resultMessage ?message ;
+          sh:resultSeverity ?severity .
+  OPTIONAL { ?result sh:resultPath ?path }
+}
+`.trim();
+}
+
+/**
+ * Parse SPARQL bindings from a pg-ripple SHACL violations query into
+ * {@link ShaclViolation} objects.
+ *
+ * Maps `sh:resultSeverity` IRIs to friendly display labels:
+ *   - `sh:Info`     → "Info"
+ *   - `sh:Warning`  → "Warning"
+ *   - `sh:Violation` → "Violation"
+ */
+export function parsePgRippleShaclViolations(
+  bindings: MetadataBinding[],
+): ShaclViolation[] {
+  const severityMap: Record<string, ShaclViolation["severity"]> = {
+    "http://www.w3.org/ns/shacl#Info": "Info",
+    "http://www.w3.org/ns/shacl#Warning": "Warning",
+    "http://www.w3.org/ns/shacl#Violation": "Violation",
+  };
+
+  return bindings
+    .filter((row) => row.message?.value)
+    .map((row) => ({
+      path: row.path?.value ?? "",
+      message: row.message!.value,
+      severity: severityMap[row.severity?.value ?? ""] ?? "Warning",
+    }));
+}
