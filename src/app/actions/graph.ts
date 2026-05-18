@@ -49,6 +49,7 @@ import {
 import { lookupPredicate } from "@/lib/vocabulary-registry";
 import { shortIRI } from "@/lib/utils";
 import type { EndpointCapabilities } from "@/lib/types";
+import { loadOverlay, applyPredicateOverlay } from "@/lib/overlay-loader";
 
 // ── Endpoint setup (capability detection + introspection) ──────
 
@@ -61,6 +62,7 @@ export interface SetupEndpointResult {
 export async function setupEndpoint(
   sparqlUrl: string,
   auth?: EndpointConfig["auth"],
+  overlayUrl?: string,
 ): Promise<SetupEndpointResult> {
   // Fast reachability probe — fail early before the 30s introspection timeout
   const headers: Record<string, string> = { Accept: "application/sparql-results+json" };
@@ -90,7 +92,25 @@ export async function setupEndpoint(
   const capabilities = await detectCapabilitiesServerSide(sparqlUrl, auth);
 
   const config: EndpointConfig = { id: "", label: "", sparqlUrl, auth, capabilities };
-  const summaries = await introspectEndpoint(config);
+  let summaries = await introspectEndpoint(config);
+
+  // v0.10.0 — Apply annotation overlay as the final pass (highest precedence).
+  // Loaded server-side to avoid CORS restrictions on overlay URLs.
+  if (overlayUrl) {
+    try {
+      const overlay = await loadOverlay(overlayUrl);
+      if (overlay) {
+        summaries = summaries.map((gs) => ({
+          ...gs,
+          predicates: applyPredicateOverlay(gs.predicates, overlay),
+        }));
+      }
+    } catch {
+      // Graceful degradation: overlay failure does not abort endpoint setup.
+      // The error will surface the next time the user explicitly loads the overlay.
+    }
+  }
+
   const labelPredicate =
     summaries[0]?.labelPredicate ?? "http://www.w3.org/2000/01/rdf-schema#label";
 
@@ -575,6 +595,11 @@ export interface RelationshipInfo {
   rangeLabel?: string;
   inverseLabel?: string;
   owlCharacteristics?: string[];
+  // v0.10.0 — overlay fields
+  /** When true, hidden by an overlay (only visible in technical view). */
+  hidden?: boolean;
+  /** When true, at least one annotation was supplied by an overlay. */
+  overlaySource?: boolean;
 }
 
 export async function fetchRelationships(
@@ -651,6 +676,9 @@ export async function fetchRelationships(
               rangeLabel: meta.rangeLabel,
               inverseLabel: meta.inverseLabel,
               owlCharacteristics: meta.owlCharacteristics,
+              // v0.10.0 — overlay fields
+              hidden: meta.hidden,
+              overlaySource: meta.overlaySource,
             };
           })()
         : {}),

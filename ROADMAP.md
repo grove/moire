@@ -381,10 +381,10 @@ All features activate automatically on pg-ripple detection; no user configuratio
 ### Changes
 
 **`src/lib/overlay-loader.ts`** _(new file)_
-- Load and validate a JSON overlay file configured per endpoint in the Endpoint Manager.
-- Schema covers: predicate label, inverse label, description, role, group, hidden flag, icon, priority; resource label, description, icon, aliases.
-- Validation runs before apply; invalid files fail with clear error messages.
-- Overlays merge as the final annotation pass (highest precedence).
+- [x] Load and validate a JSON overlay file configured per endpoint in the Endpoint Manager.
+- [x] Schema covers: predicate label, inverse label, description, role, group, hidden flag, icon, priority; resource label, description, icon, aliases.
+- [x] Validation runs before apply; invalid files fail with clear error messages.
+- [x] Overlays merge as the final annotation pass (highest precedence).
 
 Example overlay:
 ```json
@@ -402,15 +402,16 @@ Example overlay:
 ```
 
 **"Show technical view" toggle**
-- Reveals hidden predicates and raw IRIs alongside overlay-curated labels.
-- Overlay-sourced annotations marked internally (visible in technical view).
+- [x] Reveals hidden predicates and raw IRIs alongside overlay-curated labels.
+- [x] Overlay-sourced annotations marked internally (visible in technical view).
 
 **Endpoint Manager** — overlay URL field per endpoint.
+- [x] Overlay URL input field in the add-endpoint form.
 
 ### Acceptance criteria
-- Overlay overrides display without affecting underlying graph data.
-- Technical view restores access to all hidden predicates.
-- Invalid overlay files fail clearly at load time.
+- [x] Overlay overrides display without affecting underlying graph data.
+- [x] Technical view restores access to all hidden predicates.
+- [x] Invalid overlay files fail clearly at load time.
 
 ---
 

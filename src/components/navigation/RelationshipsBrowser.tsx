@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
 import { fetchRelationships, type RelationshipInfo } from "@/app/actions/graph";
 import { useNavigationStore } from "@/stores/navigation-store";
@@ -13,6 +14,7 @@ import { formatCount } from "@/lib/utils";
 import { RoleIcon } from "@/components/navigation/RoleIcon";
 import { PredicateTooltipContent } from "@/components/navigation/PredicateTooltip";
 import type { PredicateRole } from "@/lib/vocabulary-registry";
+import { Eye, EyeOff } from "lucide-react";
 
 // ── Role → UI section mapping ──────────────────────────────────
 
@@ -69,6 +71,9 @@ export function RelationshipsBrowser() {
   const getEndpoint = useEndpointStore((s) => s.getEndpoint);
   const getIntrospection = useEndpointStore((s) => s.getIntrospection);
 
+  // v0.10.0 — technical view toggle
+  const [showTechnical, setShowTechnical] = useState(false);
+
   const key = frame.endpointId
     ? `relationships:${frame.endpointId}:${frame.graphIRI}:${frame.focusClass ?? "all"}`
     : null;
@@ -114,8 +119,14 @@ export function RelationshipsBrowser() {
   }
 
   // Group relationships into sections, sorted by usefulness within each group
+  const visibleRelationships = showTechnical
+    ? relationships
+    : relationships.filter((r) => !r.hidden);
+
+  const hiddenCount = relationships.length - visibleRelationships.length;
+
   const grouped = new Map<string, RelationshipInfo[]>();
-  for (const rel of relationships) {
+  for (const rel of visibleRelationships) {
     const heading = getSectionHeading(rel.role);
     if (!grouped.has(heading)) grouped.set(heading, []);
     grouped.get(heading)!.push(rel);
@@ -132,9 +143,32 @@ export function RelationshipsBrowser() {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Relationships on the current {frame.focusClass ? "set" : "graph"}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Relationships on the current {frame.focusClass ? "set" : "graph"}
+          </p>
+          {/* v0.10.0 — technical view toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-7 px-2 text-xs gap-1 ${showTechnical ? "text-primary" : "text-muted-foreground"}`}
+                onClick={() => setShowTechnical((v) => !v)}
+                data-testid="technical-view-toggle"
+                aria-pressed={showTechnical}
+              >
+                {showTechnical ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                Technical
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {showTechnical
+                ? "Hide technical predicates and show overlay-curated labels"
+                : `Show technical view with raw IRIs and ${hiddenCount > 0 ? `${hiddenCount} hidden predicate${hiddenCount !== 1 ? "s" : ""}` : "all predicates"}`}
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         {orderedHeadings.map((heading, idx) => {
           const section = SECTIONS.find((s) => s.heading === heading)!;
@@ -162,6 +196,7 @@ export function RelationshipsBrowser() {
                   rel={rel}
                   onFollow={() => traverseVia(rel.predicate)}
                   showFollow
+                  showTechnical={showTechnical}
                   endpointId={frame.endpointId}
                   graphIRI={frame.graphIRI}
                   classIRI={frame.focusClass}
@@ -173,6 +208,7 @@ export function RelationshipsBrowser() {
                   rel={rel}
                   onFollow={() => traverseVia(rel.predicate)}
                   showFollow={false}
+                  showTechnical={showTechnical}
                   endpointId={frame.endpointId}
                   graphIRI={frame.graphIRI}
                   classIRI={frame.focusClass}
@@ -205,6 +241,7 @@ function RelationshipRow({
   rel,
   onFollow,
   showFollow,
+  showTechnical,
   endpointId,
   graphIRI,
   classIRI,
@@ -212,12 +249,13 @@ function RelationshipRow({
   rel: RelationshipInfo;
   onFollow: () => void;
   showFollow: boolean;
+  showTechnical: boolean;
   endpointId: string;
   graphIRI: string | null;
   classIRI: string | undefined;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group" data-testid="relationship-row">
+    <div className={`flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors group ${rel.hidden ? "opacity-60" : ""}`} data-testid="relationship-row">
       <div className="flex items-start gap-2 min-w-0 flex-1">
         {/* Role icon — visually distinct, accessible */}
         <RoleIcon role={rel.role} className="mt-0.5 shrink-0" />
@@ -245,6 +283,20 @@ function RelationshipRow({
             {rel.vocabularyBadge && (
               <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
                 {rel.vocabularyBadge}
+              </Badge>
+            )}
+
+            {/* v0.10.0 — overlay source marker (technical view only) */}
+            {showTechnical && rel.overlaySource && (
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                overlay
+              </Badge>
+            )}
+
+            {/* v0.10.0 — hidden marker (technical view only) */}
+            {showTechnical && rel.hidden && (
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                hidden
               </Badge>
             )}
 
@@ -280,6 +332,13 @@ function RelationshipRow({
           <p className="text-[10px] text-muted-foreground">
             {formatCount(rel.subjectCount)} subj → {formatCount(rel.objectCount)} obj
           </p>
+
+          {/* v0.10.0 — raw IRI shown in technical view */}
+          {showTechnical && (
+            <p className="text-[10px] text-muted-foreground font-mono break-all mt-0.5">
+              {rel.predicate}
+            </p>
+          )}
         </div>
       </div>
       {showFollow && (

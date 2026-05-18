@@ -12,6 +12,8 @@ export interface EndpointConfig {
   defaultGraph?: string;
   capabilities?: EndpointCapabilities;
   labelPredicate?: string;
+  /** v0.10.0 — URL of a JSON annotation overlay file for this endpoint. */
+  overlayUrl?: string;
 }
 
 export interface EndpointCapabilities {
@@ -114,6 +116,15 @@ export interface PredicateSummary {
   // v0.7.0 — SHACL-sourced label and description (class-context-specific)
   shaclName?: string;
   shaclDescription?: string;
+  // v0.10.0 — overlay annotation fields
+  /** When true, this predicate is hidden by an overlay (shown only in technical view). */
+  hidden?: boolean;
+  /** When true, at least one annotation on this predicate was supplied by an overlay. */
+  overlaySource?: boolean;
+  /** Overlay-supplied group name for this predicate. */
+  overlayGroup?: string;
+  /** Overlay-supplied display priority (lower = higher up). */
+  overlayPriority?: number;
 }
 
 export interface ClassSummary {
