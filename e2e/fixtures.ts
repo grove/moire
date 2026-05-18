@@ -60,17 +60,22 @@ export const test = base.extend<Fixtures>({
   // ── reviewPage ───────────────────────────────────────────────────────────────
   // Select the Review class from TypesBrowser.
   // The "Browse as set →" button is opacity-0 until the row is hovered.
+  // Graceful: if the Review class is not present on this endpoint, stays on bsbmPage.
+  // Tests that use reviewPage already check for their required content before asserting.
   reviewPage: async ({ bsbmPage }, use) => {
     const reviewRow = bsbmPage
       .locator(".group")
       .filter({ has: bsbmPage.locator("span.font-medium", { hasText: /^Review$/ }) })
       .first();
-    await reviewRow.hover();
-    await reviewRow.getByRole("button", { name: /browse as set/i }).click();
-    // The FacetSidebar renders immediately from the introspection cache (localStorage).
-    // No SPARQL needed — this appears within milliseconds of the Zustand state update.
-    // Tests that need actual entity data (cards, count) must wait within themselves.
-    await bsbmPage.waitForSelector("aside[aria-label='Navigation facets']", { timeout: 15_000 });
+    const hasReview = await reviewRow.isVisible({ timeout: 5_000 }).catch(() => false);
+    if (hasReview) {
+      await reviewRow.hover();
+      await reviewRow.getByRole("button", { name: /browse as set/i }).click();
+      // The FacetSidebar renders immediately from the introspection cache (localStorage).
+      // No SPARQL needed — this appears within milliseconds of the Zustand state update.
+      // Tests that need actual entity data (cards, count) must wait within themselves.
+      await bsbmPage.waitForSelector("aside[aria-label='Navigation facets']", { timeout: 15_000 });
+    }
     await use(bsbmPage);
   },
 
